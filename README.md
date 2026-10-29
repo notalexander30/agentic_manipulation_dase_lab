@@ -4,6 +4,10 @@ This README is for building, running and changing the UR10e pick-and-place
 simulation. For the student lab with practical tasks, questions and screenshots,
 use [TUTORIAL.md](TUTORIAL.md). To connect ABot-Claw or another agent to the
 typed ROS skill layer, read [ABot-Claw integration](docs/ABOTCLAW_INTEGRATION.md).
+The new HTTP adapter and OpenClaw skill are described in
+[UR10e agent setup](docs/UR10E_AGENT.md); live agent-to-Gazebo acceptance is pending.
+For a dedicated ABot-Claw/OpenClaw installation inside this project, see
+[project-local OpenClaw setup](docs/OPENCLAW_LOCAL.md).
 
 <a id="start-with-docker"></a>
 

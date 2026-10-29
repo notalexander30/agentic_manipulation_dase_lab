@@ -1,5 +1,10 @@
 # Adding ABot-Claw to the UR10e simulation stack
 
+An initial adapter and OpenClaw skill are now implemented; see
+[UR10E_AGENT.md](UR10E_AGENT.md) for startup, API, tests and current limits.
+Mocked integration tests pass; live Gazebo and natural-language acceptance
+remain unverified. The original handoff below describes the ROS boundary.
+
 This document is the handoff for the person integrating ABot-Claw. The robot
 simulation and typed ROS skill layer are complete; ABot-Claw itself is not
 installed or connected in this repository. Do not report the agent integration
@@ -234,7 +239,8 @@ and evidence path.
 | MoveIt and controller execution | Implemented and historically verified |
 | Typed pick/place and stack action | Implemented and historically verified |
 | Screenshot and JSON evidence | Implemented and historically verified |
-| ABot-Claw adapter/server | Design documented; not implemented |
+| ABot-Claw adapter/server | Implemented; mock transport/HTTP tests pass; live ROS unverified |
+| OpenClaw ur10e-sim skill/client | Implemented; discovery/routing on active installation unverified |
 | Natural-language end-to-end test | Not run |
 
 Keep this status honest as work proceeds. The simulation evidence in

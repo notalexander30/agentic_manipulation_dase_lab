@@ -17,5 +17,6 @@ setup(
         'server = block_skills.server:main',
         'blocks = block_skills.cli:main',
         'check = block_skills.check:main',
+        'agent = block_skills.agent_http:main',
     ]},
 )
