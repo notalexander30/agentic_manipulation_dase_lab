@@ -5,7 +5,7 @@ and build a tower. Submit the captures and answers in [QUESTIONS.md](QUESTIONS.m
 
 **Final task overview** (3× speed):
 
-<video controls width="800" src="docs/media/stack-overview.mp4"></video>
+https://github.com/user-attachments/assets/c2d8020c-962b-4829-ad57-9fbe4109b950
 
 Your window layout and block positions may look different from the examples below.
 
