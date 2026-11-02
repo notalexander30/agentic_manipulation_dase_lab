@@ -79,8 +79,12 @@ def setup(context):
             'planning_plugin': 'ompl_interface/OMPLPlanner',
             'request_adapters': 'default_planner_request_adapters/AddTimeOptimalParameterization default_planner_request_adapters/ResolveConstraintFrames default_planner_request_adapters/FixWorkspaceBounds default_planner_request_adapters/FixStartStateBounds default_planner_request_adapters/FixStartStateCollision default_planner_request_adapters/FixStartStatePathConstraints',
             'start_state_max_bounds_error': 0.1,
+            # TOTG may round a collision-free path into a self-collision near
+            # the folded wrist/gripper. Limit deviation from the planned path;
+            # MoveIt's final trajectory validation must still reject collisions.
+            'path_tolerance': 0.01,
             'planner_configs': {'RRTConnect': {'type': 'geometric::RRTConnect', 'range': 0.0}},
-            'ur10e_arm': {'planner_configs': ['RRTConnect'], 'longest_valid_segment_fraction': 0.005},
+            'ur10e_arm': {'planner_configs': ['RRTConnect'], 'longest_valid_segment_fraction': 0.001},
         },
         'pilz': {'planning_plugin': 'pilz_industrial_motion_planner/CommandPlanner',
                  'request_adapters': '', 'default_planner_config': 'PTP'},

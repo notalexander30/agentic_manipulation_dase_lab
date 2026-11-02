@@ -13,3 +13,9 @@ artifacts/
 .vscode/
 *.tar.gz
 *.zip
+.openclaw-runtime/
+.openclaw-state/
+openclaw-workspace/memory/
+openclaw-workspace/BOOTSTRAP.md
+openclaw-workspace/USER.md
+openclaw-workspace/MEMORY.md

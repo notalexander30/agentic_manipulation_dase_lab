@@ -6,6 +6,7 @@
   <license>Apache-2.0</license>
   <buildtool_depend>ament_python</buildtool_depend>
   <exec_depend>block_interfaces</exec_depend><exec_depend>rclpy</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
   <exec_depend>gazebo_ros</exec_depend><exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend><exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>moveit_planners_ompl</exec_depend><exec_depend>pilz_industrial_motion_planner</exec_depend>
