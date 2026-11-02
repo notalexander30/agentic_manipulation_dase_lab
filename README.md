@@ -3,6 +3,8 @@
 Follow [TUTORIAL.md](TUTORIAL.md) for setup, manual MoveIt joint checkpoints,
 JSON blocks, direct ROS pick/place commands, and tower tasks.
 Use [QUESTIONS.md](QUESTIONS.md) for submission captures and answers.
+Continue with [TUTORIAL_2.md](TUTORIAL_2.md) for the draft agentic manipulation
+lab: model connection, OpenClaw skills/tools, and verified robot tasks.
 
 Download [lab-files.zip](lab-files.zip) for the tutorial's workspace setup.
 For agent integration, start with [ABot-Claw integration notes](docs/ABOTCLAW_INTEGRATION.md);
