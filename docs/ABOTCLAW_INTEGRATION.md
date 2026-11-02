@@ -43,7 +43,7 @@ attachment, placement verification and recovery state.
 | --- | --- | --- |
 | `/skills/pick_place` | `block_interfaces/action/PickPlace` | Coordinate placement or stacking with feedback and result |
 | `/skills/status` | `std_srvs/srv/Trigger` | Read readiness, busy, held-block and fault state |
-| `/blocks` | `block_interfaces/srv/Blocks` | List, spawn, random spawn, move and randomize blocks |
+| `/blocks` | `block_interfaces/srv/Blocks` | List, load missing JSON blocks, spawn, random spawn, move and randomize blocks |
 | `/gazebo/get_entity_state` | `gazebo_msgs/srv/GetEntityState` | Read current simulated pose and velocity |
 
 The public action definition is

@@ -1,17 +1,42 @@
 # Instructor preparation: UR10e Linux lab
 
-The student handout in [TUTORIAL.md](../TUTORIAL.md) starts from a fresh Ubuntu
-workspace and includes repository downloads, builds, configuration edits and
-launch commands. Allow extra time for the first image build; a three-hour
-session needs reliable downloads or a pre-cached image.
+The student handout in [TUTORIAL.md](../TUTORIAL.md) uses Compose and an
+interactive Docker shell. Supply [compose.yaml](../compose.yaml) with the
+handout. Students run Python directly; no shell launcher is required.
 
-The student launcher `scripts/lab.sh` automates desktop access and user mapping.
-The underlying GUI uses XWayland on a Wayland desktop. Native Wayland support
-is not established. The detailed commands below are for instructors maintaining
-the environment; students follow the single launcher workflow in the handout.
+Complete Docker installation, source downloads and the image build before
+class. Publish the tutorial and Compose file together before distributing links.
+The underlying GUI uses X11/XWayland; native Wayland operation is unverified.
 
-The tutorial includes the launcher code so students can create it in a blank
-workspace. A repository checkout also contains the same `scripts/lab.sh`.
+The staged lesson also requires the updated `src/`: `world.launch.py`,
+`robot.launch.py`, and the `load` command are not in the older `94c5cab` snapshot.
+Publish the package changes with the handout. The lesson archive now follows
+the published main branch; record its revision when preparing a class release.
+
+Students first open the Gazebo world, then load the robot/MoveIt stage, and
+finally run `python3 blocks.py load` to spawn the JSON block entries. The
+instructor's all-in-one commands below remain available for maintenance.
+
+## Proposed three-hour session
+
+The following is a planning budget, not a measured completion time or a set of
+student deadlines. Validate it with a beginner pilot.
+
+| Practical activity | Suggested time |
+| --- | --- |
+| Identify Docker names, find the Xacro and build/inspect its URDF | 20 minutes |
+| Load Gazebo, inspect ROS topics/services/actions, and execute a MoveIt motion | 30 minutes |
+| Edit/load JSON blocks and restart with an independent starting layout | 20 minutes |
+| Select blocks and complete three independent placements | 25 minutes |
+| Add a JSON block, pick it and correct a rejected target | 20 minutes |
+| Calculate tower coordinates, rearrange and diagnose a failed request | 35 minutes |
+| **Practical total** | **150 minutes** |
+| Finish the Word report, label evidence and select the recorded video | 30 minutes |
+
+Take checkpoint screenshots during the practical activities. Let students
+choose their own clear targets and operation sequence. Do not count waiting
+for downloads as practical learning. A slow computer, planning failures or TA
+queues may require reducing the number of repeated placements.
 
 <a id="start-with-docker"></a>
 

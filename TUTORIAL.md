@@ -1,521 +1,451 @@
 # UR10e Lab: Pick, Place and Stack
 
-Build a robot simulation, change its scene, and use measured positions to move
-and stack blocks. You will work with configuration data, reusable skills and
-simple coordinate calculations.
+**Your goal:** load a robot from GitHub, move blocks using coordinates,
+and build a tower. Submit the captures and answers in [QUESTIONS.md](QUESTIONS.md).
 
-Use an Ubuntu Linux desktop. Run commands in Terminal (**Ctrl+Alt+T**) and edit
-files in VS Code. Allow about three hours for the activities; the first Docker
-build can take additional time depending on the computer and download speed.
+**Final task overview** (3× speed):
 
-The complete simulation has been verified on Linux `x86_64` with X11/XWayland.
-Use at least 15 GB of free disk space and an Internet connection. Docker
-supplies Ubuntu 22.04 and ROS 2 Humble; a host ROS installation is not needed.
-ARM and native Wayland operation have not been verified.
+<video controls width="800" src="docs/media/stack-overview.mp4"></video>
 
-## 1. Create the workspace
+Your window layout and block positions may look different from the examples below.
+
+## 1. Prepare the workspace
+
+Download the robot framework and prepare Docker, which runs Ubuntu 22.04 and
+ROS 2 Humble in a container.
 
 ### 1.1 Install the tools
 
-On a fresh Ubuntu desktop, enter the following. If Docker already works, do
-not reinstall it: install just `git curl xauth` and skip the Docker service
-and group commands.
+Run this section in an **Ubuntu desktop terminal** (**Ctrl+Alt+T**).
+Copy commands only, without a terminal prompt such as `xander@computer:~$`.
+Skip installation if these tools already work:
 
 ```bash
 sudo apt update
-sudo apt install -y git curl docker.io xauth
+sudo apt install -y git docker.io docker-compose-v2 xauth
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
 
-Install VS Code if it is not already available:
+Log out and back in after adding yourself to the Docker group.
+If needed, install VS Code with `sudo snap install code --classic`.
+
+### 1.2 Download the robot repositories
+
+Create the workspace and download the robot packages once:
 
 ```bash
-sudo snap install code --classic
-```
-
-Log out and back in once to apply Docker group membership. Open Terminal:
-
-```bash
-docker version
-```
-
-**Expected:** `Client` and `Server` sections, each with a version number.
-
-### 1.2 Create a new workspace and download the robot repositories
-
-Create an empty workspace on **your own computer**:
-
-```bash
-cd "$HOME"
-mkdir -p ur10e-skills-lab/{upstream,src,docker,scripts}
-cd ur10e-skills-lab
-code .
-```
-
-`upstream/` is an ordinary local folder created by this command. It is not a
-folder you need to find in IFRA's repository, and it does not depend on files
-from the instructor's computer. Each `git clone URL DESTINATION` downloads a
-public repository into the named local destination. Run these commands only
-once in a new workspace:
-
-```bash
+mkdir -p ~/ur10e-skills-lab/upstream
+cd ~/ur10e-skills-lab
 git clone https://github.com/IFRA-Cranfield/ros2_SimRealRobotControl.git upstream/ros2_SimRealRobotControl
-git -C upstream/ros2_SimRealRobotControl checkout 9645e14a36cd7411871c9572275e6435ab41dac7
-
 git clone https://github.com/IFRA-Cranfield/IFRA_LinkAttacher.git upstream/IFRA_LinkAttacher
-git -C upstream/IFRA_LinkAttacher checkout b056289ba93ccb549db98926dcbb9679642d0c8d
-
-git clone https://github.com/ros-controls/gazebo_ros2_control.git upstream/gazebo_ros2_control
-git -C upstream/gazebo_ros2_control checkout 9a3736cc742e73fc86355ef4fdb63326376ca1db
+git clone --branch humble https://github.com/ros-controls/gazebo_ros2_control.git upstream/gazebo_ros2_control
 ```
 
-**Expected:** VS Code shows three downloaded folders under `upstream/`.
-The checkout commands select the versions used by this lab.
-The “detached HEAD” message after checkout is expected. If a clone or checkout
-fails, stop and resolve that error before building.
+`upstream/` stores the repositories on your computer. The `humble` branch of
+`gazebo_ros2_control` matches ROS 2 Humble.
 
-| Folder | Provides |
-| --- | --- |
-| `upstream/ros2_SimRealRobotControl` | UR10e, gripper and MoveIt configuration |
-| `upstream/IFRA_LinkAttacher` | Simulated grasp and release |
-| `upstream/gazebo_ros2_control` | Connection between controllers and simulated joints |
-| `src/block_interfaces` | Task input and result definitions |
-| `src/block_skills` | Scene, block operations and robot skills |
-| `docker` | ROS 2 Humble software environment |
+Source repositories:
 
-### 1.3 Add the supplied lab files
+- [ros2_SimRealRobotControl](https://github.com/IFRA-Cranfield/ros2_SimRealRobotControl): UR10e, gripper and MoveIt configuration.
+- [IFRA_LinkAttacher](https://github.com/IFRA-Cranfield/IFRA_LinkAttacher): simulated grasp and release.
+- [gazebo_ros2_control](https://github.com/ros-controls/gazebo_ros2_control): connects controllers to Gazebo joints.
 
-The robot files come from these public repositories:
+### 1.3 Add the lab files
 
-- [IFRA robot framework](https://github.com/IFRA-Cranfield/ros2_SimRealRobotControl).
-- [IFRA LinkAttacher](https://github.com/IFRA-Cranfield/IFRA_LinkAttacher).
-- [Gazebo controller bridge](https://github.com/ros-controls/gazebo_ros2_control).
+Download [lab-files.zip](lab-files.zip), then extract it into this workspace using **Files**.
+Keep `upstream/`; place `src/`, `docker/` and `compose.yaml` beside it.
 
-Download the custom skill packages and Docker files individually from the
-[lab source](https://github.com/notalexander30/abotclawpiper_lab/tree/94c5cab).
-This fixed revision contains the supplied files; it does not require cloning
-the finished lab or copying anything from another computer.
+In VS Code's Explorer, the workspace should contain:
 
-Enter this whole block from `~/ur10e-skills-lab`:
+- `src/block_interfaces`: ROS task inputs and results.
+- `src/block_skills`: the scene and robot skills.
+- `docker/Dockerfile` and `docker/entrypoint.sh`: the Ubuntu and ROS environment.
+- `compose.yaml`: the container's startup settings.
+
+Open `compose.yaml`. The service is `lab`, the image is `ur10e:humble`, and
+the `.:/work` volume shares your workspace with Docker. Saving an edit in
+VS Code updates the same files the robot skills use.
+
+### 1.4 Build the Docker image
+
+Open the workspace and set your Linux account IDs:
 
 ```bash
-bash <<'DOWNLOAD'
-set -euo pipefail
-LESSON=https://raw.githubusercontent.com/notalexander30/abotclawpiper_lab/94c5cab
-mkdir -p src/block_interfaces/{action,msg,srv}
-mkdir -p src/block_skills/{block_skills,config,launch,resource}
-for FILE in CMakeLists.txt package.xml action/PickPlace.action msg/Block.msg srv/Blocks.srv; do
-  curl --retry 3 -fsSL "$LESSON/src/block_interfaces/$FILE" -o "src/block_interfaces/$FILE"
-done
-for FILE in package.xml setup.py setup.cfg config/blocks.json launch/sim.launch.py block_skills/__init__.py block_skills/capture.py block_skills/check.py block_skills/cli.py block_skills/geometry.py block_skills/reports.py block_skills/server.py resource/block_skills; do
-  curl --retry 3 -fsSL "$LESSON/src/block_skills/$FILE" -o "src/block_skills/$FILE"
-done
-for FILE in Dockerfile entrypoint.sh; do
-  curl --retry 3 -fsSL "$LESSON/docker/$FILE" -o "docker/$FILE"
-done
-curl --retry 3 -fsSL "$LESSON/.dockerignore" -o .dockerignore
-chmod +x docker/entrypoint.sh
-DOWNLOAD
+code .
+export LAB_UID=$(id -u) LAB_GID=$(id -g)
+docker compose build
 ```
 
-**Expected:** `src/block_interfaces`, `src/block_skills` and `docker` now
-contain files. If a download fails, repeat this block before continuing.
-The block stops on a failed download instead of silently skipping a file.
+The image contains Ubuntu, ROS and the robot packages. Build it once.
+This creates the image; it does not start the robot. The account IDs make
+files created inside Docker belong to your Linux account.
 
-### 1.4 Add the desktop launcher
+![Docker image build completed](docs/media/01-docker-build.png)
 
-Create `scripts/lab.sh` in VS Code:
+### 1.5 Give the container desktop access
 
-```bash
-code scripts/lab.sh
-```
-
-Paste the following supplied code and save with **Ctrl+S**. It maps your own
-workspace and desktop into Docker. You do not need to modify the code.
+Allow Docker's Gazebo and RViz windows to use your desktop:
 
 ```bash
-#!/usr/bin/env bash
-# Linux desktop launcher for the UR10e lab. Run from the desktop session.
-set -euo pipefail
-cd "$(dirname "$(readlink -f "$0")")/.."
-
-container_name=${LAB_CONTAINER:-ur10e}
-
-case "${1:-start}" in
-  stop)
-    docker stop --time 15 "$container_name"
-    exit
-    ;;
-  restart)
-    docker stop --time 15 "$container_name"
-    docker rm "$container_name"
-    ;;
-  start) ;;
-  *) echo 'Usage: bash scripts/lab.sh {start|restart|stop}' >&2; exit 2 ;;
-esac
-
-: "${DISPLAY:?Run this command from a terminal in the Linux desktop session.}"
-mkdir -p .container
-printf 'root:x:0:0:root:/root:/bin/bash\nsim:x:%s:%s:Simulation:/tmp:/bin/bash\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\n' \
-  "$(id -u)" "$(id -g)" > .container/passwd
-printf 'root:x:0:\nsim:x:%s:\nnogroup:x:65534:\n' "$(id -g)" > .container/group
-# Copy only the current display cookie, accepting the container's hostname.
 umask 077
-: > .xauth
+touch .xauth
 xauth nlist "$DISPLAY" | sed 's/^..../ffff/' | xauth -f .xauth nmerge -
-if [[ ! -s .xauth ]]; then
-  echo 'Desktop display access is unavailable. Run from the logged-in desktop terminal.' >&2
-  exit 1
-fi
-
-docker run --detach --init --name "$container_name" \
-  --user "$(id -u):$(id -g)" -e HOME=/tmp --shm-size=512m \
-  -v "$PWD:/work" \
-  -v "$PWD/.container/passwd:/etc/passwd:ro" \
-  -v "$PWD/.container/group:/etc/group:ro" \
-  -e "DISPLAY=$DISPLAY" -e XAUTHORITY=/work/.xauth \
-  -e LIBGL_ALWAYS_SOFTWARE=1 \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
-  ur10e:humble ros2 launch block_skills sim.launch.py \
-  gui:=true rviz:=true config:=/work/src/block_skills/config/blocks.json
-
-docker exec "$container_name" /entrypoint.sh ros2 run block_skills blocks status --wait 150
 ```
 
-**Expected:** `scripts/lab.sh` is saved in your workspace. This file is created
-here explicitly, so the launch step does not depend on an unpublished helper.
+### 1.6 Enter Docker and build the skill packages
 
-### 1.5 Build the environment
-
-Run from `~/ur10e-skills-lab`:
+In the same terminal:
 
 ```bash
-docker build -t ur10e:humble -f docker/Dockerfile .
+docker compose run --rm lab
 ```
 
-**Expected:** The image is saved as `ur10e:humble`. Wait for the build to finish.
-Then build the two custom packages:
+`lab` selects the Compose service. `--rm` removes the container when you exit;
+your workspace files remain on Ubuntu.
+
+You are now at `/work` **inside Docker**. Keep this terminal open for all
+remaining ROS commands; edit files in your Ubuntu VS Code window.
 
 ```bash
-docker run --rm \
-  --user "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$PWD:/work" ur10e:humble bash -c \
-  'colcon build --base-paths src --symlink-install --parallel-workers 2'
+colcon build --base-paths src --symlink-install --parallel-workers 2
+source /work/install/setup.bash
 ```
 
-**Expected:** A summary containing `2 packages finished`, with no failed packages.
+**Capture 1:** the build summary showing `2 packages finished`.
+`source` makes these packages available in this terminal.
 
-### Checkpoint 1
+![Both custom ROS packages finished building](docs/media/02-package-build.png)
 
-**Screenshot:** The build summary and workspace folders.
+`colcon` builds the two custom packages. The IFRA robot packages are already
+inside the Docker image.
 
-1. Which repository provides the robot model?
-2. What is the purpose of the custom `block_skills` package?
+## 2. Start the simulation and move joints manually
 
-## 2. Start Gazebo and RViz
+Gazebo simulates physics and moving objects. RViz shows ROS data and MoveIt
+planning controls. Load the table, robot and blocks separately so you can see
+what each component adds.
+
+### 2.1 Prepare the scene settings
+
+In VS Code, open `src/block_skills/config/blocks.json`. The `table` entry sets
+the table dimensions; `blocks` contains the objects you will add later.
+Keep this file open while working with the simulation.
+
+### 2.2 Open Gazebo with the table
+
+In the Docker terminal, start the table world:
 
 ```bash
-bash scripts/lab.sh start
+ros2 launch block_skills world.launch.py config:=/work/src/block_skills/config/blocks.json > /tmp/world.log 2>&1 &
+WORLD_PID=$!
 ```
 
-The launcher connects the Linux desktop to the container and starts the robot,
-controllers and skill server. It handles display access automatically.
+**Expected:** Gazebo shows a table and floor, with no robot or blocks yet.
+The table dimensions come from JSON. Wait for the table before continuing.
 
-**Expected:** Gazebo and RViz open, followed by:
+![Gazebo world containing the table before the robot is loaded](docs/media/03-table-world.png)
 
-```text
-ready=True; busy=False; holding=none; fault=none
-```
+### 2.3 Start the arm, gripper and RViz
 
-In **Gazebo**, locate the UR10e, gripper, table and three blocks. In **RViz**,
-expand the **MotionPlanning** display and locate the robot model. MoveIt plans
-the motion; Gazebo shows its simulated execution.
-
-Open a second Terminal for the remaining commands:
+The robot stage connects the supplied UR10e model, controllers and MoveIt to
+the Gazebo world. It also opens RViz with the planning controls configured.
+In the same Docker terminal:
 
 ```bash
-cd "$HOME/ur10e-skills-lab"
-docker exec ur10e /entrypoint.sh ros2 run block_skills blocks list
+ros2 launch block_skills robot.launch.py config:=/work/src/block_skills/config/blocks.json > /tmp/robot.log 2>&1 &
+ROBOT_PID=$!
+ros2 run block_skills blocks status --wait 150
 ```
 
-**Expected:** JSON records for these initial block centres, approximately:
+Wait for readiness before moving. Gazebo simulates the robot; RViz provides
+MoveIt planning controls. `&` leaves the terminal available.
 
-| Block | x (m) | y (m) | z (m) |
-| --- | --- | --- | --- |
-| `red_block` | 0.55 | -0.28 | 0.675 |
-| `blue_block` | 0.70 | 0.00 | 0.675 |
-| `green_block` | 0.55 | 0.28 | 0.675 |
+![UR10e and gripper loaded into the empty table world](docs/media/04-robot-loaded.png)
 
-The values are measured from the current simulation and may vary slightly.
+![MoveIt planning controls and the robot in RViz](docs/media/05-rviz.png)
 
-### Checkpoint 2
+Keep both launch stages running in this shell. The PID variables let you stop
+them later. Do not start `sim.launch.py` alongside them; it starts another scene.
 
-**Screenshot:** Gazebo and RViz, with the block list visible if space allows.
+### 2.4 Plan and move the arm in RViz
 
-1. What does RViz display, and what does Gazebo simulate?
-2. Where do the block positions come from?
+In RViz, select **Planning Group → ur10e_arm**, **Start State → current**,
+then open **Joints**. Manually set all six arm joints to the same absolute
+angle for each checkpoint. Leave the gripper unchanged.
 
-## 3. Find the skills and modify the scene
-
-### 3.1 Follow a command through the code
-
-Open these files in VS Code. Use **Ctrl+F** to find the named functions:
-
-| File under `src/` | Find | Purpose |
+| Arm joint | Checkpoint A | Checkpoint B |
 | --- | --- | --- |
-| `block_skills/block_skills/cli.py` | `parser`, `goal.support_block` | Reads `pick` or `stack` arguments and creates a request |
-| `block_interfaces/action/PickPlace.action` | `support_block`, `target` | Defines the task inputs and returned result |
-| `block_skills/block_skills/server.py` | `tool_pose`, `move_to`, `verify_placement` | Calculates the tool pose, requests motion and measures the outcome |
-| `block_skills/block_skills/geometry.py` | `table_top`, `validate_position` | Calculates geometry and validates destinations |
-| `block_skills/config/blocks.json` | `blocks`, `approach_height` | Supplies starting positions and motion parameters |
+| `shoulder_pan_joint` | 45° | 90° |
+| `shoulder_lift_joint` | 45° | 90° |
+| `elbow_joint` | 45° | 90° |
+| `wrist_1_joint` | 45° | 90° |
+| `wrist_2_joint` | 45° | 90° |
+| `wrist_3_joint` | 45° | 90° |
 
-```text
-Terminal command → cli.py → PickPlace action → server.py → MoveIt → robot
-                                                ↑                   │
-                                                └── measured state ─┘
-```
+If the RViz input uses radians, enter **0.7854** for 45° and **1.5708** for 90°.
+These are absolute goals, not increments. Complete A, then B:
 
-### 3.2 Edit the JSON configuration
+1. **Manually type all six joint goals** in the Joints tab.
+2. Click **Plan** and inspect the path. Gazebo's arm has not moved yet.
+3. **Capture 2A-before / 2B-before:** RViz showing all six goal values and the
+   planned path, with Gazebo showing the arm before execution.
+4. Click **Execute** after a successful plan.
+5. **Capture 2A-after / 2B-after:** Gazebo showing the executed pose; include
+   RViz's current joint values in the same capture if possible.
+6. Before planning B, refresh **Start State → current**.
 
-```bash
-code src/block_skills/config/blocks.json
-```
+For submission, manually enter both sets of goals and label each pair with its
+angle. These poses have not been validated in this scene and may be rejected
+because of collisions. If planning fails, capture the six goal values and the
+planning error instead of an executed-pose capture; ask the TA before continuing.
+Keep collision checking enabled and execute only successful plans.
+Finish manual joint movement before loading blocks.
 
-Replace only the `green_block` entry in the `blocks` list with:
+Before executing a movement (illustrative example; use your assigned angles):
 
-```json
-{"name": "green_block", "color": "green", "position": [0.65, 0.28, 0.675], "yaw": 0.0}
-```
+![Arm before MoveIt execution](docs/media/25-moveit-plan.png)
 
-In `colors`, change the green entry to:
+After MoveIt executes the movement:
 
-```json
-"green": [0.1, 0.9, 0.4, 1.0]
-```
+![Arm after MoveIt execution](docs/media/26-moveit-executed.png)
 
-Keep the surrounding commas and braces. The four colour values are red, green,
-blue and opacity. Save with **Ctrl+S**.
+The goal model previews the requested pose; Execute sends the planned motion
+to the controllers. Later, your `pick` commands send block destinations to
+the same planning system instead of specifying individual joint angles.
 
-Restart to load the changed scene. Restarting resets block positions:
+## 3. Edit and load JSON blocks
 
-```bash
-bash scripts/lab.sh restart
-docker exec ur10e /entrypoint.sh ros2 run block_skills blocks list
-```
+### 3.1 Find the source files
 
-**Expected:** Green has a new shade and its x coordinate is approximately
-`0.65`. Its y and z stay at `0.28` and `0.675`. The launcher reads the source
-JSON directly, so this change needs a restart but no rebuild.
+In VS Code, look under `src/`:
 
-### Checkpoint 3
+- `block_skills/block_skills/cli.py`: reads your commands.
+- `block_interfaces/action/PickPlace.action`: task inputs and results.
+- `block_skills/block_skills/server.py`: plans and executes tasks.
+- `block_skills/block_skills/geometry.py`: scene geometry and position checks.
+- `block_skills/config/blocks.json`: positions, colors and motion settings.
 
-**Screenshot:** Your edited JSON beside the changed scene.
+### 3.2 Inspect and edit the block definitions
 
-1. Which values changed the block's appearance and location?
-2. Why did editing JSON alone not move the block in the running scene?
+In VS Code, open `src/block_skills/config/blocks.json`. Its `blocks` list
+defines each block's unique `name`, `color`, centre `position` in
+metres `[x, y, z]`, and `yaw` in radians.
 
-## 4. Calculate a block and gripper location
-
-Positions use the Gazebo `world` frame, in metres. These Cartesian calculations
-set a desired pose; MoveIt solves the robot's joint inverse kinematics.
-
-### 4.1 Calculate the block centre
-
-From `blocks.json`, the table centre is `(0.70, 0.00, 0.60)`, the table thickness
-is `0.10`, and the cube side length is `0.05`.
-
-```text
-Table surface z = 0.60 + 0.10 / 2 = 0.650 m
-Block centre z  = 0.650 + 0.05 / 2 = 0.675 m
-```
-
-Choose a destination offset from the table centre, such as
-`dx = 0.12 m` and `dy = -0.28 m`:
-
-```text
-Target x = table centre x + dx = 0.70 + 0.12 = 0.82 m
-Target y = table centre y + dy = 0.00 - 0.28 = -0.28 m
-Target z = 0.675 m
-```
-
-Use x within `0.38–0.95` and y within `−0.45–0.45`. Leave at least `0.16 m`
-between the destination and other block centres. For two points:
-
-```text
-separation = sqrt((x2 - x1)^2 + (y2 - y1)^2)
-```
-
-### 4.2 Calculate the approach pose
-
-For an upright block before grasping, `tool_pose` adds `grasp_offset` and
-`approach_height` to the block centre. The defaults are `0.015` and `0.18`:
-
-```text
-Tool grasp z    = 0.675 + 0.015        = 0.690 m
-Tool approach z = 0.675 + 0.015 + 0.18 = 0.870 m
-```
-
-Its x and y match the block centre for this initial vertical approach. The
-function also assigns the tool orientation; after grasping, it uses the
-measured block-to-tool transform.
-
-**Exercise:** Change `approach_height` to `0.20` in `blocks.json`, calculate the
-new approach height, save, and run `bash scripts/lab.sh restart`. Your answer
-should be **0.890 m**. Leave the other motion parameters unchanged.
-
-### 4.3 Execute the placement
-
-Create a small script in VS Code:
-
-```bash
-code place_block.py
-```
-
-Paste and save:
-
-```python
-import json
-import subprocess
-from pathlib import Path
-
-config = json.loads(Path("src/block_skills/config/blocks.json").read_text())
-cx, cy, cz = config["table"]["center"]
-thickness = config["table"]["size"][2]
-block_size = config["block_size"]
-
-dx, dy = 0.12, -0.28
-x, y = cx + dx, cy + dy
-z = cz + thickness / 2 + block_size / 2
-approach_z = z + config["grasp_offset"] + config["approach_height"]
-
-print(f"Target block centre: ({x:.3f}, {y:.3f}, {z:.3f})", flush=True)
-print(f"Approach z for a block at this height: {approach_z:.3f} m", flush=True)
-subprocess.run(
-    ["ros2", "run", "block_skills", "blocks", "pick", "red_block",
-     str(x), str(y), str(z)],
-    check=True,
-)
-```
-
-Run it inside the container:
-
-```bash
-docker exec ur10e /entrypoint.sh python3 /work/place_block.py
-```
-
-**Expected:** The calculation prints `(0.820, -0.280, 0.675)` and `0.890 m`.
-The robot moves red to the destination. A successful result includes:
+The starting list is:
 
 ```json
-{
-  "success": true,
-  "verified": true,
-  "holding_block": false
-}
+"blocks": [
+  {"name": "red_block", "color": "red", "position": [0.55, -0.28, 0.675], "yaw": 0.0},
+  {"name": "blue_block", "color": "blue", "position": [0.70, 0.0, 0.675], "yaw": 0.0},
+  {"name": "green_block", "color": "green", "position": [0.55, 0.28, 0.675], "yaw": 0.0}
+]
 ```
 
-It also prints a measured `position`, `task_id` and `report_file`. In-bounds
-positions can still fail motion planning; read `message` and adjust the target.
-If a failure leaves `holding_block` true, restart before another request.
+Before the first load, change green's position to `[0.65, 0.28, 0.675]` and
+its palette entry to `"green": "#1AE666"`. Save the file.
 
-### Checkpoint 4
+Colors accept six-digit hex codes in quotes, such as `"#1AE666"`.
+The supplied blocks use palette keys (`red`, `blue`, `green`); for a new block,
+you can put a hex code directly in its `color` field as shown in section 6.3.
+Keep JSON commas and braces intact, and save with **Ctrl+S**.
 
-**Screenshot:** Your calculated coordinates, terminal result and moved block.
-
-1. Show the calculation for the block centre and approach height.
-2. Which part of the system converts the requested tool pose into joint motion?
-
-## 5. Measure, adjust and repeat
-
-Replace `TASK_ID` with the ID returned by your placement:
+### 3.3 Load the configured blocks into Gazebo
 
 ```bash
-code artifacts/TASK_ID/result.json
+ros2 run block_skills blocks load
+ros2 run block_skills blocks list
 ```
 
-**Expected:** `target.position` is the requested location and
-`final_pose.position` is the measured location. Calculate the position error:
+**Capture 3:** the edited JSON and the three blocks in Gazebo.
 
-```text
-error = sqrt((actual_x - target_x)^2
-           + (actual_y - target_y)^2
-           + (actual_z - target_z)^2)
-```
+**Expected:** Three blocks appear, with green at approximately
+`[0.65, 0.28, 0.675]`. The server reads JSON, creates the cube models in
+Gazebo, and adds their collision geometry to MoveIt. They are separate objects,
+not links added to the robot URDF.
 
-For a successful table placement, the error should be at most **0.02 m**.
-The skill also verifies orientation and stability.
+![Three blocks loaded from the edited JSON](docs/media/07-json-blocks.png)
 
-Read the current block list again. Change `dx` or `dy` in `place_block.py` to
-choose your own second clear destination. Save and rerun the script. Compare
-the requested and measured positions from both tasks.
+![Current block centres read from Gazebo](docs/media/08-live-poses.png)
 
-```text
-Read state → Calculate target → Run skill → Measure error → Adjust next target
-```
+### 3.4 Changing an existing starting position
 
-### Checkpoint 5
+`load` adds missing model names; it preserves existing blocks' live poses.
+To apply an edited starting position to an existing block, stop both stages
+using section 7 (stay inside Docker), repeat sections 2.2–2.3, and load again.
+Keep Z at `0.675`, stay within `workspace`, and leave at least `0.16 m`
+between separate block centres.
 
-**Screenshot:** Your second placement and its result.
+![Restarted scene with an edited starting position loaded](docs/media/22-reloaded-scene.png)
 
-1. Record the target, measured position and error for both attempts.
-2. How did the live state influence your second target?
+## 4. Pick and place with coordinates
 
-## 6. Stack three blocks
+### 4.1 Read the position and dimensions
 
-Keep the scene after the second placement. Place blue on red:
+Positions are `[x, y, z]` in metres. X follows Gazebo's red world axis,
+Y the green axis, and Z the blue axis. Use the world axes, not the direction
+the camera is facing.
+
+The table measures **0.90 m (X) × 1.20 m (Y) × 0.10 m thick**. Its top is at
+**Z = 0.65 m**. Each block is **0.05 m × 0.05 m × 0.05 m**; its centre rests
+at **Z = 0.675 m**.
+
+### 4.2 Choose a destination and run the placement
+
+Use direct commands in Docker. For example, if the destination is clear:
 
 ```bash
-docker exec ur10e /entrypoint.sh \
-  ros2 run block_skills blocks stack blue_block red_block
+ros2 run block_skills blocks pick red_block 0.82 -0.28 0.675
 ```
 
-**Expected:** Blue rests on red, with `"success": true` and `"verified": true`.
-Wait for completion, then use the same structure to stack green on blue:
+`pick` makes the robot grasp and place the named block. The last three numbers
+are its destination centre **X Y Z**, in metres in the world frame.
+JSON defines the starting scene; enter movement destinations directly in these
+commands. No `pick_block`, `place_target` or Python wrapper is needed.
 
-```text
-ros2 run block_skills blocks stack MOVING_BLOCK SUPPORT_BLOCK
+The skill gets the block's latest pose, asks MoveIt for a collision-aware path,
+operates the gripper and checks the released cube. You choose the destination;
+you do not need to enter six joint angles.
+
+- X/Y are horizontal; Z is height. Use Gazebo's world axes.
+- For a separate table placement, use Z = `0.675`, X = `0.38–0.95`,
+  Y = `−0.45–0.45`, and at least `0.16 m` from other block centres.
+- Use `ros2 run block_skills blocks list` to read current centres before choosing a target.
+- Wait for `success: true` before the next move. If a failed task reports
+  `holding_block: true`, ask the TA and restart the scene before continuing.
+
+![Red block after a coordinate placement](docs/media/09-red-place.png)
+
+### 4.3 Move each block
+
+Move red by changing X, blue by changing Y, and green by changing both X and Y.
+Edit the model name and numeric coordinates in the command for each move.
+
+**Capture 4:** Gazebo after the three moves. Caption it with your three commands.
+
+![Blue after its independent coordinate placement](docs/media/10-blue-place.png)
+
+![Green after its independent coordinate placement](docs/media/11-green-place.png)
+
+## 5. Add and move a yellow block
+
+### 5.1 Add another block through JSON
+
+Append this entry to the JSON `blocks` list, with a comma between entries.
+Use another free position if this one is occupied:
+
+```json
+{"name": "yellow_extra", "color": "yellow", "position": [0.55, 0.12, 0.675], "yaw": 0.0}
 ```
 
-Run it through `docker exec ur10e /entrypoint.sh`, as above.
-
-**Expected:** Green on blue on red. Each extra block adds one cube side length:
-
-| Block | Centre height |
-| --- | --- |
-| Red | 0.675 m |
-| Blue | 0.675 + 0.05 = 0.725 m |
-| Green | 0.725 + 0.05 = 0.775 m |
-
-Keep the final task ID and its `artifacts/TASK_ID/result.json` and `scene.png`.
-Repeat your green-on-blue command once.
-
-**Expected:** `"already_complete": true`, with no new robot movement. The
-repeated request creates its own task ID; keep the original stacking result.
-
-### Checkpoint 6
-
-**Screenshot:** Your completed tower and successful result. Show your name,
-student ID and final task ID in VS Code beside Gazebo.
-
-1. How does the stack skill calculate the next block's centre height?
-2. Why does the repeated request finish without moving the robot?
-
-## 7. Submit and finish
-
-Submit one Word document with the six checkpoint screenshots and answers.
-Include your coordinate calculations and two placement results. Attach
-`place_block.py`, your modified `blocks.json` and the final stack's `result.json`.
-Use your own targets and results; the TA may ask you to explain a code change
-or demonstrate another placement.
-
-After saving your work:
+Yellow already exists in `colors`. Save, then run:
 
 ```bash
-bash scripts/lab.sh stop
+ros2 run block_skills blocks load
 ```
 
-**Expected:** `ur10e`. Your files remain in the workspace.
+**Expected:** One new yellow block appears; the existing blocks keep their
+live poses. Adding a scene object does not move the robot arm.
 
-**Further work:** Connect these skills to ABot-Claw using the
-[integration notes](docs/ABOTCLAW_INTEGRATION.md).
+![A fourth yellow block added through JSON](docs/media/12-yellow-loaded.png)
+
+### 5.2 Move the added block
+
+Move it to a clear table position using `pick`, for example:
+
+```bash
+ros2 run block_skills blocks pick yellow_extra 0.85 0.30 0.675
+```
+
+**Capture 5:** Gazebo showing yellow after the robot placement. Keep it separate
+from the tower.
+
+![Yellow after a robot placement](docs/media/13-yellow-place.png)
+
+## 6. Build two towers and add your own color
+
+### 6.1 Build a tower using coordinates
+
+Each cube is `0.05 m` high; the table top is Z = `0.65 m`.
+For stacking, align X/Y with the supporting block and calculate the moving
+block's centre Z from the cube dimensions. Use `blocks list` to read live poses.
+
+1. Keep red as the base at your chosen table position.
+2. Calculate blue's centre on red, then use `pick blue_block` followed by your
+   calculated X Y Z values.
+3. Calculate green's centre on blue and place it with `pick green_block`.
+4. **Capture 6A:** the red–blue–green tower, bottom to top. Caption it with the
+   three centre coordinates and your height calculation.
+
+Do not use the `stack` shortcut. The server checks that an elevated target
+has a real, aligned support; it does not calculate or replace your coordinates.
+Keep the cubes upright with yaw zero.
+
+![Two cubes after the first calculated elevated placement](docs/media/15-blue-on-red.png)
+
+![Three-block tower](docs/media/16-first-tower.png)
+
+### 6.2 Build a different tower without resetting
+
+Write the move order for a **blue–green–red** tower, bottom to top.
+Move free top blocks to clear table spaces first, then rebuild using `pick`.
+Complete this without resetting the scene or using `move`, `randomize`, or
+the `stack` shortcut. Move only a free top block and wait for each successful
+result before continuing. The order matters: a support cannot move while
+another block is on top of it.
+
+![Second tower with blue below green and red](docs/media/21-second-tower.png)
+
+### 6.3 Add your own color beside the tower
+
+Use the full command prefix `ros2 run block_skills blocks` for every pick.
+For the final submission, add one additional block in a color **other than
+red, green, blue or purple**. Specify it with a **hex color code**, not a color name.
+
+All color and block settings are in `src/block_skills/config/blocks.json`:
+
+1. Open an online [hex color picker](https://htmlcolorcodes.com/color-picker/),
+   choose your color, and copy its **#RRGGBB** code. Each pair represents
+   red, green or blue intensity. Use six digits after `#`.
+2. Find the `blocks` list. Add an entry with a **unique name** and paste the
+   code directly into `color`, inside double quotes. No new `colors` dictionary
+   entry is needed. Keep a comma between block entries.
+   `position` is its centre `[x, y, z]` in metres; use `z = 0.675` for the
+   table and choose a free X/Y at least `0.16 m` from other block centres.
+   For example:
+
+```json
+{"name": "custom_extra", "color": "#FF8800", "position": [0.55, -0.28, 0.675], "yaw": 0.0}
+```
+
+3. Replace `#FF8800` with your chosen code and select a free starting position.
+   The yellow block from section 5 alone does not count as this additional block.
+4. Save with **Ctrl+S** and load the new block in the Docker terminal:
+
+```bash
+ros2 run block_skills blocks load
+```
+
+`load` adds the new block without resetting existing objects. To recolor a
+block that is already loaded, edit its `color` or palette values, then restart
+both launch stages and load again as in section 3.4. Add the submission block
+with a new name to preserve your completed tower.
+
+**Capture 6B:** your blue–green–red tower with the new colored block beside it.
+Include the new block entry from JSON and write your hex code in the
+caption. Yellow remains separate. The configured tower limit is three cubes;
+the extra color goes **beside** the tower.
+
+## 7. Stop the simulation
+
+In the same Docker terminal:
+
+```bash
+kill -INT "$ROBOT_PID" "$WORLD_PID"
+wait "$ROBOT_PID" "$WORLD_PID"
+```
+
+Use `exit` to leave Docker when finished. Your workspace files remain on Ubuntu.
+For another session, export the account IDs and prepare desktop access as in
+section 1, enter Docker, source the packages, then launch the world and robot
+and load the blocks again.

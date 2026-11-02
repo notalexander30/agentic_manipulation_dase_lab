@@ -1,5 +1,76 @@
 # Verification record
 
+## Latest-branch workshop test — 2 November 2026
+
+The latest IFRA default branches matched commits 9645e14 and b056289. The
+latest gazebo_ros2_control default branch (3e6d3f4, version 0.7.6) failed to
+compile against Humble APIs. Its latest humble branch, 42d875b, built successfully.
+Startup initially failed parsing XML comments in the robot-description parameter.
+The custom launcher now removes comments from the generated URDF; the upstream
+repositories remain unmodified. Controllers then started and JSON loading passed.
+
+The new student Python client placed blue on red successfully. Green transport
+at the first tower location failed with MOTION_FAILED while held; the reported
+fault required a scene restart. After restarting with a clear tower location,
+blue-on-red and green-on-blue both returned verified success with screenshot
+evidence. The final task ID was b901008ebf51408785f67942d138a806. This validates
+the tested configuration and recovery path, not every coordinate or future
+branch update. Earlier tutorial images/video remain examples from prior runs.
+Logs and reports are retained in /home/xander/ur10e-latest-test.
+
+
+## Coordinate-based towers — 2 November 2026
+
+The workshop now uses explicit destination centres through `pick`, with no
+support-name shortcut. The server validates the real support beneath an
+elevated target while preserving the supplied coordinates. All 13 tests passed
+with no errors, failures or skips, including invalid support, non-finite target,
+cyclic support and excessive tower-height cases.
+
+In Gazebo, blue placement at `(0.55, -0.28, 0.725)` and green placement at
+`(0.55, -0.28, 0.775)` both returned verified success and screenshot evidence.
+The green task was `5fb25294291143709068678eb2179d59`; its measured centre was
+`(0.549990, -0.280001, 0.774680)`. The screenshot was opened and showed the tower.
+Repeating the coordinate request returned `already_complete=true`. Moving the
+covered blue block returned `BLOCK_NOT_TOP`; an elevated destination with no
+support returned `INVALID_REQUEST`, both before motion.
+
+An initial screenshot attempt failed because this workspace lacked the desktop
+authorization file. After supplying valid Xauthority and restarting the test
+scene, screenshot capture and the above tasks succeeded. Logs are retained in
+`/tmp/ur10e-coordinate-audit` and may be cleared; task reports/screenshots are
+generated under the local `artifacts/` directory. These tests ran on the current
+Docker desktop setup, not a second computer.
+
+## Staged launch and JSON loading — 2 November 2026
+
+The revised custom packages were built and exercised in a separate Compose
+workspace using the installed `ur10e:humble` image. All 12 package tests passed
+with no errors, failures or skipped tests.
+
+- `world.launch.py` exposed a live table through Gazebo's state service, with
+  no robot or blocks. `robot.launch.py` then loaded the arm, gripper, controllers,
+  MoveIt and RViz; the ready server initially returned an empty block list.
+- `load` spawned the three JSON blocks with the edited green position and
+  color. Repeating it spawned zero models. Appending a yellow definition added
+  one block while preserving the red block's current, moved position.
+- A batch containing a valid candidate followed by a candidate overlapping
+  the live red block was rejected before either candidate spawned.
+- Physical red placement at `(0.82, -0.28, 0.675)`, blue-on-red and green-on-blue
+  all returned verified success with screenshot evidence. The final screenshot
+  was opened and showed the three-block tower and separate yellow block.
+- Repeating the top stacking task returned `already_complete=true`; reloading
+  JSON preserved all four live blocks and the tower.
+- After stopping both stages, the original `sim.launch.py` reported ready and
+  automatically loaded all four configured blocks at their starting positions.
+
+The final stacking task was `230861b4f85f4146b0b7023924e1b786`, with measured
+green centre `(0.819955, -0.279993, 0.774678)`. Logs, results and screenshots
+are in `/tmp/ur10e-stages.GVfp5A` on this computer and may be cleared. This audit
+used the local revised source; the new public download path requires publishing
+the source and documentation together. It does not establish compatibility
+with a second computer or a cold Docker build.
+
 ## Fresh workspace audit of the revised tutorial
 
 An additional audit started in an empty temporary directory, downloaded the

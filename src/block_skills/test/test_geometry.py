@@ -1,14 +1,37 @@
 import math
+import json
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import pytest
 from block_skills.geometry import (load_config, validate_position, upright_yaw,
-    random_positions, random_free_position, support_chain, check_spacing, yaw_quat, multiply, rotate, block_sdf, world_sdf)
+    random_positions, random_free_position, support_chain, coordinate_support, check_spacing, yaw_quat, multiply, rotate, block_sdf, world_sdf)
 
 
 @pytest.fixture
 def config():
     return load_config(Path(__file__).parents[1] / 'config' / 'blocks.json')
+
+
+def test_hex_color_in_block_and_palette(config, tmp_path):
+    config['colors']['green'] = '#00ff80'
+    config['blocks'][0]['color'] = '#FF8800'
+    path = tmp_path / 'blocks.json'
+    path.write_text(json.dumps(config))
+    loaded = load_config(path)
+    assert loaded['colors']['green'] == pytest.approx([0, 1, 128 / 255, 1])
+    assert loaded['colors']['#FF8800'] == pytest.approx([1, 136 / 255, 0, 1])
+    root = ET.fromstring(block_sdf('custom_block', .05, loaded['colors']['#FF8800']))
+    rgba = root.find('model/link/visual/material/diffuse').text.split()
+    assert list(map(float, rgba)) == pytest.approx([1, 136 / 255, 0, 1])
+
+
+@pytest.mark.parametrize('code', ['#123', '#GG8800', '#FF880000', '#FF8800oops'])
+def test_invalid_hex_color_is_rejected(config, tmp_path, code):
+    config['blocks'][0]['color'] = code
+    path = tmp_path / 'blocks.json'
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match='#RRGGBB'):
+        load_config(path)
 
 
 def test_workspace_rejects_unreachable_nonfinite_and_stacked(config):
@@ -72,3 +95,20 @@ def test_stack_requires_grounded_aligned_supports(config):
         support_chain(config, 'blue', {'blue': [.57, -.28, .725], 'red': positions['red']})
     with pytest.raises(ValueError):
         support_chain(config, 'green', {'green': [.55, -.28, 2.0]})
+
+
+def test_coordinate_placement_requires_grounded_support_without_adjusting_target(config):
+    positions = {'red': [.55, -.28, .6749], 'blue': [.7, 0, .6749]}
+    target = [.55, -.28, .725]
+    assert coordinate_support(config, 'blue', target, positions) == 'red'
+    assert target == [.55, -.28, .725]
+    assert coordinate_support(config, 'blue', [.8, .3, .675], positions) == ''
+    for invalid in [[.55, -.28, .75], [.60, -.28, .725], [.55, -.28, float('nan')]]:
+        with pytest.raises(ValueError):
+            coordinate_support(config, 'blue', invalid, positions)
+    positions['blue'] = [.55, -.28, .7248]
+    positions['green'] = [.55, -.28, .7747]
+    with pytest.raises(ValueError, match='own tower'):
+        coordinate_support(config, 'red', [.55, -.28, .7748], positions)
+    with pytest.raises(ValueError, match='maximum stack height'):
+        coordinate_support(config, 'yellow', [.55, -.28, .8247], positions)

@@ -1,4 +1,4 @@
-# list, spawn, spawn_random, move, randomize. Mutations are rejected during a skill.
+# list, load, spawn, spawn_random, move, randomize. Mutations are rejected during a skill.
 string operation
 string name
 string color

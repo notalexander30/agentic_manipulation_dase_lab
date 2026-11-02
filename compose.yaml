@@ -1,0 +1,22 @@
+services:
+  lab:
+    image: ur10e:humble
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    user: "${LAB_UID:?Set LAB_UID}:${LAB_GID:?Set LAB_GID}"
+    init: true
+    stdin_open: true
+    tty: true
+    shm_size: 512m
+    environment:
+      HOME: /tmp
+      DISPLAY: "${DISPLAY:?Run from your desktop terminal}"
+      XAUTHORITY: /work/.xauth
+      LIBGL_ALWAYS_SOFTWARE: "1"
+    volumes:
+      - .:/work
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    command: bash

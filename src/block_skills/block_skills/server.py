@@ -34,7 +34,7 @@ from block_interfaces.action import PickPlace
 from block_interfaces.msg import Block
 from block_interfaces.srv import Blocks
 from block_skills.geometry import (load_config, table_top, table_legs, yaw_quat, multiply, rotate,
-    upright_yaw, validate_position, validate_name, check_spacing, random_positions, random_free_position, support_chain, block_sdf)
+    upright_yaw, validate_position, validate_name, check_spacing, random_positions, random_free_position, support_chain, coordinate_support, block_sdf)
 from block_skills.reports import timestamp, pose_record, write_report
 
 EE = 'EE_robotiq_2f85'
@@ -66,7 +66,9 @@ def pose_at(position, orientation=None):
 class Server(Node):
     def __init__(self):
         super().__init__('block_skills')
-        self.config = load_config(self.declare_parameter('config', '').value)
+        self.config_path = self.declare_parameter('config', '').value
+        self.config = load_config(self.config_path)
+        self.auto_load_blocks = self.declare_parameter('auto_load_blocks', True).value
         self.artifact_dir = Path(self.declare_parameter('artifact_dir', str(Path.cwd()/'artifacts')).value)
         self.group = ReentrantCallbackGroup()
         self.lock = threading.Lock()
@@ -145,13 +147,15 @@ class Server(Node):
             return
         self.initializing = True
         try:
-            for block in self.config['blocks']:
-                self.spawn(block['name'], block['color'], pose_at(block['position'], yaw_quat(block.get('yaw', 0))))
+            if self.auto_load_blocks:
+                self.load_blocks()
             time.sleep(1)
             self.sync_scene()
             self.ready = True
             self.timer.cancel()
-            self.get_logger().info('READY: UR10e + Robotiq 2F-85; /blocks and /skills/pick_place available.')
+            self.get_logger().info(
+                f'READY: UR10e + Robotiq 2F-85; {len(self.registry)} blocks loaded; '
+                '/blocks and /skills/pick_place available.')
         except Exception as exc:
             self.fault = str(exc)
             self.get_logger().error(f'Initialization failed: {exc}')
@@ -175,6 +179,36 @@ class Server(Node):
             raise SkillError('SPAWN_FAILED', result.status_message)
         self.registry[name] = color
 
+    def load_blocks(self):
+        """Load new JSON model names without resetting existing live poses.
+
+        Validate the entire batch before spawning anything. A Gazebo spawn
+        failure can still leave a partial batch; its registered models are
+        preserved so a corrected/retried load can add the remaining names.
+        """
+        config = load_config(self.config_path)
+        mutable = {'blocks', 'colors', 'pick_block', 'place_target'}
+        fixed = lambda data: {k: v for k, v in data.items() if k not in mutable}
+        if fixed(config) != fixed(self.config):
+            raise ValueError('World or motion settings changed; restart world and robot before loading blocks.')
+        for name, color in self.registry.items():
+            if config['colors'].get(color) != self.config['colors'][color]:
+                raise ValueError(f'Color of existing block {name} changed; restart the scene.')
+        for block in config['blocks']:
+            if block['name'] in self.registry and self.registry[block['name']] != block['color']:
+                raise ValueError(f'Color identity of {block["name"]} changed; restart the scene.')
+        new_blocks = [b for b in config['blocks'] if b['name'] not in self.registry]
+        occupied = [xyz(b.pose.pose) for b in self.block_list()]
+        for block in new_blocks:
+            check_spacing(config, block['position'], occupied)
+            occupied.append(block['position'])
+        self.config['colors'] = config['colors']
+        for block in new_blocks:
+            self.spawn(block['name'], block['color'],
+                       pose_at(block['position'], yaw_quat(block.get('yaw', 0))))
+        self.config['blocks'] = config['blocks']
+        return len(new_blocks)
+
     def block_list(self):
         result = []
         for name, color in self.registry.items():
@@ -195,6 +229,8 @@ class Server(Node):
                 raise ValueError(f'Restart simulation to recover: holding={self.held}, fault={self.fault}')
             if request.operation == 'list':
                 pass
+            elif request.operation == 'load':
+                loaded = self.load_blocks()
             elif request.operation == 'spawn_random':
                 if request.color not in self.config['colors']:
                     raise ValueError(f'Unknown color {request.color}; add it to blocks.json first.')
@@ -227,13 +263,14 @@ class Server(Node):
                 for name, (position, yaw) in zip(self.registry, poses):
                     self.set_pose(name, pose_at(position, yaw_quat(yaw)))
             else:
-                raise ValueError('operation must be list, spawn, spawn_random, move or randomize.')
+                raise ValueError('operation must be list, load, spawn, spawn_random, move or randomize.')
             if request.operation != 'list':
                 time.sleep(0.5)
                 self.sync_scene()
             response.blocks = self.block_list()
             response.success = True
-            response.message = request.operation + ' complete'
+            response.message = (f'load complete: {loaded} new block(s)' if request.operation == 'load'
+                                else request.operation + ' complete')
         except Exception as exc:
             response.message = str(exc)
         finally:
@@ -590,7 +627,10 @@ class Server(Node):
                 target = handle.request.target
                 if target.header.frame_id != 'world':
                     raise ValueError('Target frame_id must be world; coordinates are the block centre.')
-                validate_position(self.config, xyz(target.pose))
+                support = coordinate_support(self.config, name, xyz(target.pose), positions)
+                if support:
+                    references = {n: copy.deepcopy(snapshot[n]) for n in support_chain(self.config, support, positions)}
+                    self.ensure_support(references)
                 upright_yaw(quat(target.pose))
             if handle.request.evidence == 'screenshot':
                 self.evidence_capture()  # Fail before movement if required evidence cannot be captured.

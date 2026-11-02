@@ -37,6 +37,7 @@ def parser():
     p = argparse.ArgumentParser(description='Manage Gazebo blocks and execute the UR10e pick/place skill.')
     commands = p.add_subparsers(dest='command', required=True)
     commands.add_parser('list')
+    commands.add_parser('load', help='Load missing blocks from the server JSON; preserve existing poses.')
     status = commands.add_parser('status')
     status.add_argument('--wait', type=float, default=0, help='Wait up to this many seconds for readiness.')
     randomize = commands.add_parser('randomize')
@@ -142,7 +143,7 @@ def run(node, args):
     result = wait(node, client.call_async(request), 60)
     if not result.success:
         raise RuntimeError(result.message)
-    if args.command == 'add':
+    if args.command in ['add', 'load']:
         print(result.message, file=sys.stderr)
     print(json.dumps([{'name': b.name, 'color': b.color,
                       'position': [b.pose.pose.position.x, b.pose.pose.position.y, b.pose.pose.position.z],

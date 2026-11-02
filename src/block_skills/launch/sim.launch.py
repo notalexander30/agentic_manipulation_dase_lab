@@ -19,11 +19,16 @@ def read_yaml(package, path):
 
 
 def setup(context):
+    stage = LaunchConfiguration('stage').perform(context)
     config_path = LaunchConfiguration('config').perform(context)
     config = load_config(config_path)
     world_path = os.path.join(tempfile.mkdtemp(prefix='ur10e_'), 'table.world')
     with open(world_path, 'w') as stream:
         stream.write(world_sdf(config))
+    gazebo = IncludeLaunchDescription(PythonLaunchDescriptionSource(os.path.join(share('gazebo_ros'), 'launch', 'gazebo.launch.py')),
+        launch_arguments={'world': world_path, 'gui': LaunchConfiguration('gui'), 'verbose': 'false'}.items())
+    if stage == 'world':
+        return [gazebo]
     rviz_config = read_yaml('ros2srrc_moveit', 'config/ros2srrc.rviz')
     for display in rviz_config['Visualization Manager']['Displays']:
         if display.get('Class') == 'moveit_rviz_plugin/MotionPlanning':
@@ -36,8 +41,17 @@ def setup(context):
     rviz_path = os.path.join(os.path.dirname(world_path), 'robot.rviz')
     with open(rviz_path, 'w') as stream:
         yaml.safe_dump(rviz_config, stream)
-    urdf = xacro.process_file(os.path.join(share('ros2srrc_ur10e'), 'urdf', 'ur10e_robotiq_2f85.urdf.xacro'),
-                              mappings={'EE': 'true', 'EE_name': 'robotiq_2f85', 'prefix': ''}).toxml()
+    urdf_document = xacro.process_file(os.path.join(share('ros2srrc_ur10e'), 'urdf', 'ur10e_robotiq_2f85.urdf.xacro'),
+                              mappings={'EE': 'true', 'EE_name': 'robotiq_2f85', 'prefix': ''})
+    # XML comments can break the controller plugin's parameter-override parser.
+    def remove_comments(node):
+        for child in list(node.childNodes):
+            if child.nodeType == child.COMMENT_NODE:
+                node.removeChild(child)
+            else:
+                remove_comments(child)
+    remove_comments(urdf_document)
+    urdf = urdf_document.toxml()
     semantic = xacro.process_file(os.path.join(share('ros2srrc_moveit'), 'config', 'ur10e_robotiq_2f85.srdf'),
                                  mappings={'prefix': '', 'name': 'ur10e'})
     semantic.documentElement.setAttribute('name', 'ur10e')
@@ -78,16 +92,15 @@ def setup(context):
         'publish_planning_scene': True, 'publish_geometry_updates': True,
         'publish_state_updates': True, 'publish_transforms_updates': True,
     }
-    gazebo = IncludeLaunchDescription(PythonLaunchDescriptionSource(os.path.join(share('gazebo_ros'), 'launch', 'gazebo.launch.py')),
-        launch_arguments={'world': world_path, 'gui': LaunchConfiguration('gui'), 'verbose': 'false'}.items())
-    nodes = [gazebo,
+    nodes = ([gazebo] if stage == 'all' else []) + [
         Node(package='robot_state_publisher', executable='robot_state_publisher', parameters=[robot], output='log'),
         Node(package='gazebo_ros', executable='spawn_entity.py', arguments=['-topic', 'robot_description', '-entity', 'ur10e'], output='screen'),
         Node(package='controller_manager', executable='spawner', arguments=[
             'joint_state_broadcaster', 'joint_trajectory_controller', *grippers['controller_names'],
             '--controller-manager-timeout', '120'], output='screen'),
         Node(package='moveit_ros_move_group', executable='move_group', parameters=[robot, planning], output='log'),
-        Node(package='block_skills', executable='server', parameters=[{'config': config_path, 'use_sim_time': True}], output='screen'),
+        Node(package='block_skills', executable='server', parameters=[{
+            'config': config_path, 'use_sim_time': True, 'auto_load_blocks': stage == 'all'}], output='screen'),
         Node(package='rviz2', executable='rviz2', condition=IfCondition(LaunchConfiguration('rviz')),
              arguments=['-d', rviz_path],
              parameters=[robot, planning], output='log'),
@@ -97,6 +110,7 @@ def setup(context):
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument('stage', default_value='all', choices=['all', 'world', 'robot']),
         DeclareLaunchArgument('gui', default_value='true'),
         DeclareLaunchArgument('rviz', default_value='true'),
         DeclareLaunchArgument('config', default_value=os.path.join(share('block_skills'), 'config', 'blocks.json')),

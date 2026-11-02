@@ -50,7 +50,7 @@ def validate_position(config, xyz):
             raise ValueError(f'Unreachable/outside configured table workspace: {axis}={value}, allowed [{lo}, {hi}].')
     expected_z = table_top(config) + config['block_size']/2
     if abs(xyz[2]-expected_z) > 0.008:
-        raise ValueError(f'Block centre z must be {expected_z:.3f} m for table placement; use the stack skill to place on another block.')
+        raise ValueError(f'Block centre z must be {expected_z:.3f} m for this table-only operation.')
 
 
 def validate_name(name):
@@ -116,6 +116,34 @@ def support_chain(config, name, positions):
         chain.append(parents[0])
 
 
+def coordinate_support(config, moving, target, positions):
+    """Validate a supplied centre without replacing it with a derived target."""
+    if len(target) != 3 or not all(math.isfinite(v) for v in target):
+        raise ValueError('Coordinates must be three finite numbers.')
+    base_z = table_top(config) + config['block_size']/2
+    validate_position(config, [target[0], target[1], base_z])
+    if abs(target[2]-base_z) <= .008:
+        return ''
+    tolerance = config.get('stack_position_tolerance', .005)
+    candidates = [name for name, point in positions.items() if name != moving
+                  and math.dist(target, [point[0], point[1], point[2]+config['block_size']]) <= tolerance]
+    if len(candidates) != 1:
+        raise ValueError('Elevated target needs one aligned supporting block; check the requested XYZ centre.')
+    support = candidates[0]
+    chain = support_chain(config, support, positions)
+    if moving in chain:
+        raise ValueError('Cannot place a supporting block on its own tower.')
+    if len(chain) >= config.get('max_stack_height', 3):
+        raise ValueError('Requested target exceeds the configured maximum stack height.')
+    return support
+
+
+def hex_rgba(value):
+    if not isinstance(value, str) or not re.fullmatch(r'#[0-9a-fA-F]{6}', value):
+        raise ValueError('Color code must use #RRGGBB, for example #FF8800.')
+    return [int(value[i:i + 2], 16) / 255 for i in (1, 3, 5)] + [1.0]
+
+
 def load_config(path):
     with open(path) as stream:
         config = json.load(stream)
@@ -125,9 +153,13 @@ def load_config(path):
         raise ValueError('Block size must be between 0.025 and 0.06 m for this gripper.')
     if config['workspace']['spacing'] < config['block_size'] * 2:
         raise ValueError('Spacing must be at least twice the block size.')
+    config['colors'] = {key: hex_rgba(value) if isinstance(value, str) else value
+                        for key, value in config['colors'].items()}
     names, positions = set(), []
     for block in config['blocks']:
         validate_name(block['name'])
+        if isinstance(block['color'], str) and block['color'].startswith('#'):
+            config['colors'][block['color']] = hex_rgba(block['color'])
         if block['name'] in names or block['color'] not in config['colors']:
             raise ValueError('Duplicate block name or unknown color.')
         names.add(block['name'])
