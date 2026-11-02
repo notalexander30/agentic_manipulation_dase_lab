@@ -14,6 +14,7 @@ services:
       DISPLAY: "${DISPLAY:?Run from your desktop terminal}"
       XAUTHORITY: /work/.xauth
       LIBGL_ALWAYS_SOFTWARE: "1"
+      LP_NUM_THREADS: "2"
     volumes:
       - .:/work
       - /etc/passwd:/etc/passwd:ro

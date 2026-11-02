@@ -25,7 +25,7 @@ from linkattacher_msgs.srv import AttachLink, DetachLink
 from moveit_msgs.action import MoveGroup
 from moveit_msgs.msg import (AttachedCollisionObject, CollisionObject, Constraints,
                             OrientationConstraint, PositionConstraint, PlanningScene,
-                            AllowedCollisionEntry, PlanningSceneComponents)
+                            AllowedCollisionEntry, PlanningSceneComponents, MoveItErrorCodes)
 from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
@@ -69,6 +69,8 @@ class Server(Node):
         self.config_path = self.declare_parameter('config', '').value
         self.config = load_config(self.config_path)
         self.auto_load_blocks = self.declare_parameter('auto_load_blocks', True).value
+        # Wall-clock deadline: software-rendered simulation can run below real time.
+        self.motion_timeout = self.declare_parameter('motion_timeout', 240.0).value
         self.artifact_dir = Path(self.declare_parameter('artifact_dir', str(Path.cwd()/'artifacts')).value)
         self.group = ReentrantCallbackGroup()
         self.lock = threading.Lock()
@@ -375,7 +377,8 @@ class Server(Node):
         self.active.publish_feedback(PickPlace.Feedback(stage=stage, progress=float(progress), message=message))
         self.get_logger().info(f'{stage}: {message}')
 
-    def run_action(self, client, goal, timeout=90):
+    def run_action(self, client, goal, timeout=None):
+        timeout = self.motion_timeout if timeout is None else timeout
         self.check_cancel()
         if not client.wait_for_server(timeout_sec=3):
             raise SkillError('UNAVAILABLE', 'Motion action server unavailable.')
@@ -400,7 +403,10 @@ class Server(Node):
             error = getattr(result.result, 'error_code', None)
             if error is not None:
                 no_plan = not result.result.planned_trajectory.joint_trajectory.points
-                raise SkillError('PLANNING_FAILED' if no_plan else 'MOTION_FAILED',
+                # INVALID_MOTION_PLAN is rejected before execution, even when a
+                # trajectory was generated. It can use the bounded planning retry.
+                rejected_plan = error.val == MoveItErrorCodes.INVALID_MOTION_PLAN
+                raise SkillError('PLANNING_FAILED' if no_plan or rejected_plan else 'MOTION_FAILED',
                                  f'MoveIt returned error {error.val}; action status {result.status}.')
             raise SkillError('MOTION_FAILED', f'Motion action ended with status {result.status}.')
         return result.result

@@ -1,5 +1,67 @@
 # Verification record
 
+## Published ZIP audit — 2 November 2026
+
+The missing `lab-files.zip` was published to GitHub main in commit 212ebad.
+It was downloaded back from the public repository and matched the local ZIP.
+A separate folder containing only the extracted ZIP built both custom packages
+from scratch (`2 packages finished`, 57.9 seconds), using the Docker image built
+from the tutorial dependencies. No separate student handout or repository clone
+is needed for the custom packages. The image build reused cached dependency
+layers; fresh Ubuntu tool installation and an uncached package download were
+not repeated. The external repository revisions tested were robot 9645e14,
+LinkAttacher b056289, and gazebo_ros2_control's humble branch 42d875b.
+
+The GUI run exposed two wall-clock motion timeouts. One occurred before grasp;
+another occurred while transporting green and reported `holding_block=true`.
+The scene was reset before retrying. Gazebo was running at about 0.45 real-time
+factor. Compose now caps Mesa software-rendering threads at two, and the skill
+server's configurable `motion_timeout` defaults to 240 seconds instead of 90.
+Cancellation and collision/placement checks remain enabled. Green and yellow
+then completed their real pick, transport, release and placement checks.
+A subsequent second-tower attempt was rejected with INVALID_MOTION_PLAN (-2)
+because the generated path contained forearm/gripper self-collisions. No
+transport was executed. This specific pre-execution rejection now uses the
+existing three-attempt planning retry; controller failures remain terminal.
+
+The clean ZIP package checks initially passed 18 tests; all 20 passed after
+adding the rejected-plan versus controller-failure regression checks. An earlier run of those tests
+against the actively edited workshop configuration failed two fixture
+assumptions (three initial blocks and a new yellow name). Rerunning against
+the unedited extracted configuration passed all 18; the student's edited scene
+was not used as the test fixture for the final result.
+
+Both all-six-joint targets (45 degrees and 90 degrees) were submitted to MoveIt
+as plan-only goals and returned error -27, with no execution. This does not
+verify manual RViz clicks or those executed poses. The tutorial already permits
+capturing the rejected goal/error instead of executing an invalid plan.
+
+The final uninterrupted tower challenge passed after recovery:
+
+| Operation | Verified task ID |
+| --- | --- |
+| Blue on red | 56c9249b228a42acbea8ddae9ca03e9d |
+| Green on blue | 1a243861469c430b868fc48814f8d2cd |
+| Unstack green to table | e8fd64b4f6874da3928dce697f1d69b6 |
+| Move blue to new base | 7cf902be9152463083391071bda477ec |
+| Green on new blue base | 17e5560938024e98aecec5a16914e197 |
+| Red on green | 87bc9457fb6b4fe6a7753ced78af4c63 |
+
+There was no scene reset between these six operations. Green transport retried
+both rejected plans and succeeded on its third attempt. The final red centre
+was approximately `(0.699993, -0.050012, 0.774678)` m. A new `student_teal`
+block with literal color `#00B8D4` loaded beside the tower, with yellow still
+separate. Repeating the final coordinate request returned verified success and
+`already_complete=true`, task d8519b4ee94d4aa4950801f961da79e0. Its saved
+Gazebo screenshot was opened to inspect the completed scene. Earlier, moving
+a covered blue block returned `BLOCK_NOT_TOP` before motion. All tutorial
+image paths resolve locally. The tutorial itself was left unchanged.
+
+Runtime logs, results and screenshots are retained locally under
+`/home/xander/ur10e-github-audit/audit-results` and its `artifacts` directory.
+The user's other idle simulation was paused during this resource-intensive test;
+its scene was preserved.
+
 ## Latest-branch workshop test — 2 November 2026
 
 The latest IFRA default branches matched commits 9645e14 and b056289. The
