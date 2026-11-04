@@ -424,8 +424,8 @@ the variable values and command used for each move.
 
 #### Questions
 
-6. Why is a common coordinate frame needed when specifying robot and block
-   positions?
+6. Why should the robot and blocks use the same reference point and X, Y, Z
+   directions when describing their positions?
 7. Why must the planned path be checked for collisions even when the
    destination is clear?
 
