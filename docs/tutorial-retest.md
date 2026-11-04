@@ -133,3 +133,13 @@ placement's screenshot remain in the test folder. This additional check covers
 the changed startup, grasp/release, two table placements and shutdown.
 
 Updated lab ZIP SHA-256: `b837c1b461aef8bece9fc1feb7f37d767729d4802ecf35a3897052a51245d20b`.
+
+## Exit-only shutdown update — 4 November 2026
+
+The tutorial now ends the Docker session with `exit`, without saved process IDs.
+This was tested with direct Gazebo and the robot/MoveIt/RViz launch running and
+ready: exiting removed the one-off container and stopped its programs. Re-entering
+Docker, sourcing the persistent workspace, starting the simulation and loading
+all four saved JSON blocks succeeded. A second `exit` again removed the test
+container. Workspace files remained available. Section 3.4 now documents this
+container re-entry procedure for applying scene edits.

@@ -173,11 +173,7 @@ In the Docker terminal, export the table from JSON and open Gazebo:
 ```bash
 python3 -m block_skills.geometry /work/src/block_skills/config/blocks.json /tmp/table.world
 gazebo /tmp/table.world -s libgazebo_ros_init.so -s libgazebo_ros_factory.so > /tmp/world.log 2>&1 &
-WORLD_PID=$!
 ```
-
-`$!` automatically gives the process ID of the command started with `&`.
-`WORLD_PID` saves the Gazebo process ID. Copy this line unchanged.
 
 The `-s` options enable ROS communication and robot spawning.
 
@@ -195,11 +191,8 @@ In the same Docker terminal:
 
 ```bash
 ros2 launch block_skills robot.launch.py config:=/work/src/block_skills/config/blocks.json > /tmp/robot.log 2>&1 &
-ROBOT_PID=$!
 ros2 run block_skills blocks status --wait 150
 ```
-
-`ROBOT_PID` saves the robot launch process ID. Keep `$!` unchanged.
 
 Wait for readiness before moving. Gazebo simulates the robot; RViz provides
 MoveIt planning controls. `&` leaves the terminal available.
@@ -208,8 +201,7 @@ MoveIt planning controls. `&` leaves the terminal available.
 
 ![MoveIt planning controls and the robot in RViz](docs/media/05-rviz.png)
 
-Keep Gazebo and the robot launch running in this shell. The saved process IDs
-let you stop them later.
+Keep this Docker terminal open while working with the simulation.
 
 ### 2.4 Plan and move the arm in RViz
 
@@ -345,8 +337,21 @@ not links added to the robot URDF.
 ### 3.4 Apply changes to existing blocks
 
 `load` adds missing model names; it preserves existing blocks' poses and colors.
-To apply changed starting positions or colors, stop Gazebo and the robot launch
-using section 8 (stay inside Docker), repeat sections 2.2–2.3, and load again.
+To apply changed starting positions or colors, enter `exit` in Docker.
+
+Back in the Ubuntu terminal, enter:
+
+```bash
+docker compose run --rm lab
+```
+
+Inside Docker:
+
+```bash
+source /work/install/setup.bash
+```
+
+Repeat sections 2.2–2.3, then load the blocks again.
 Keep Z at `0.675`, stay within `workspace`, and leave at least `0.16 m`
 between separate block centres.
 
@@ -524,21 +529,16 @@ the completed row of five blocks.
 
 ## 8. Stop the simulation
 
-In the same Docker terminal:
+In the Docker terminal:
 
 ```bash
-kill -INT "$ROBOT_PID" "$WORLD_PID"
-wait "$ROBOT_PID" "$WORLD_PID"
+exit
 ```
 
-Keep both variable names unchanged. They expand to the process IDs saved in
-sections 2.2–2.3. Run these commands in the same Docker terminal; do not
-replace them with your username or type guessed process numbers.
-
-Use `exit` to leave Docker when finished. Your workspace files remain on Ubuntu.
-For another session, export the account IDs and prepare desktop access as in
-section 1, enter Docker, source the packages, then launch the world and robot
-and load the blocks again.
+This closes the container and stops its simulation programs. Your workspace
+files remain on Ubuntu. From your workspace folder, follow section 3.4 to
+restart. If using a new Ubuntu terminal, set the account IDs and desktop access
+again as in section 1.
 
 Submit your Word report with checkpoints 1–6, answers to Questions 1–8, and your
 edited `blocks.json`. Include the bonus screenshots if you attempted Part 7.
