@@ -31,7 +31,7 @@ Skip installation if these tools already work:
 
 ```bash
 sudo apt update
-sudo apt install -y git docker.io docker-compose-v2 xauth
+sudo apt install -y git docker.io docker-compose-v2 xauth unzip
 sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
@@ -72,15 +72,34 @@ Source repositories:
 
 ### 1.3 Add the lab files
 
-Download [lab-files.zip](lab-files.zip), then extract it into this workspace using **Files**.
-Keep `upstream/`; place `src/`, `docker/` and `compose.yaml` beside it.
+1. Download [lab-files.zip](lab-files.zip).
+2. Open **Files** and find the downloaded ZIP. If it is in **Downloads**, select
+   it and press **Ctrl+X**. Open **Home → ur10e-skills**, then press **Ctrl+V**.
+3. In Ubuntu Terminal, extract the ZIP:
 
-In VS Code's Explorer, the workspace should contain:
+```bash
+cd ~/ur10e-skills
+unzip lab-files.zip
+```
 
-- `src/block_interfaces`: ROS task inputs and results.
-- `src/block_skills`: the scene and robot skills.
-- `docker/Dockerfile` and `docker/entrypoint.sh`: the Ubuntu and ROS environment.
-- `compose.yaml`: the container's startup settings.
+The ZIP stays in the folder and its contents appear beside `upstream/`:
+
+```text
+ur10e-skills/
+├── lab-files.zip
+├── compose.yaml
+├── .dockerignore
+├── docker/
+├── src/
+└── upstream/
+```
+
+If you already extracted into a folder called `lab-files`, move its contents
+into `ur10e-skills`. In Files, press **Ctrl+H** to show `.dockerignore`, then
+select the contents with **Ctrl+A**, cut with **Ctrl+X**, and paste into
+`ur10e-skills` with **Ctrl+V**.
+
+Continue to section 1.4 once `compose.yaml` is directly inside `ur10e-skills`.
 
 Open `compose.yaml`. The service is `lab`, the image is `ur10e:humble`, and
 the `.:/work` volume shares your workspace with Docker. Saving an edit in
