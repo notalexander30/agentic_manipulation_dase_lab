@@ -55,19 +55,14 @@ sudo snap install code --classic
 Create the workspace and download the robot packages once:
 
 ```bash
-LAB_DIR="$HOME/ur10e-skills-lab"
-mkdir -p "$LAB_DIR/upstream"
-cd "$LAB_DIR"
+cd
+mkdir ur10e-skills
+cd ur10e-skills
+mkdir upstream
 git clone https://github.com/IFRA-Cranfield/ros2_SimRealRobotControl.git upstream/ros2_SimRealRobotControl
 git clone https://github.com/IFRA-Cranfield/IFRA_LinkAttacher.git upstream/IFRA_LinkAttacher
 git clone --branch humble https://github.com/ros-controls/gazebo_ros2_control.git upstream/gazebo_ros2_control
 ```
-
-`$HOME` is your home folder, for example `/home/xander`. `LAB_DIR` then becomes
-`/home/xander/ur10e-skills-lab`. Change only `ur10e-skills-lab` if you want a
-different folder name; keep `$HOME` and `"$LAB_DIR"` as written.
-`upstream/` stores the repositories on your computer. The `humble` branch of
-`gazebo_ros2_control` matches ROS 2 Humble.
 
 Source repositories:
 
