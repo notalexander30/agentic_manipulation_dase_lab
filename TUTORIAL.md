@@ -101,14 +101,10 @@ export LAB_UID=$(id -u) LAB_GID=$(id -g)
 docker compose build
 ```
 
-Copy `$(id -u)` and `$(id -g)` exactly as written. They read your Linux user
-and group IDs automatically; these are not your student ID. If both commands
-return `1000`, the line is equivalent to `export LAB_UID=1000 LAB_GID=1000`.
-Use the automatic command above so it matches your own account.
+Copy `$(id -u)` and `$(id -g)` as written.
 
 The image contains Ubuntu, ROS and the robot packages. Build it once.
-This creates the image; it does not start the robot. The account IDs make
-files created inside Docker belong to your Linux account.
+This creates the image; it does not start the robot.
 
 ![Docker image build completed](docs/media/01-docker-build.png)
 
@@ -352,10 +348,10 @@ not links added to the robot URDF.
 
 ![Current block centres read from Gazebo](docs/media/08-live-poses.png)
 
-### 3.4 Changing an existing starting position
+### 3.4 Apply changes to existing blocks
 
-`load` adds missing model names; it preserves existing blocks' live poses.
-To apply an edited starting position to an existing block, stop both stages
+`load` adds missing model names; it preserves existing blocks' poses and colors.
+To apply changed starting positions or colors, stop Gazebo and the robot launch
 using section 8 (stay inside Docker), repeat sections 2.2–2.3, and load again.
 Keep Z at `0.675`, stay within `workspace`, and leave at least `0.16 m`
 between separate block centres.
@@ -502,45 +498,23 @@ showing the four blocks in Gazebo, and write your chosen hex code below it.
 8. What happened when you loaded your new block, and what changed only after running
    `pick`? Explain the difference between adding an object and moving it.
 
-## 6. Build and rearrange a tower
+## 6. Build a tower with your own colors
 
-### 6.1 Build a tower using coordinates
+### 6.1 Choose the colors and arrangement
 
-Each cube is `0.05 m` high; the table top is Z = `0.65 m`.
-For stacking, align X/Y with the supporting block and calculate the moving
-block's centre Z from the cube dimensions. Use `blocks list` to read live poses.
+Choose three distinct colors other than red, green or blue. In `blocks.json`,
+replace each original block's `color` value with your chosen hex code. Keep the
+model names unchanged and choose colors different from your fourth block.
 
-1. Keep red as the base at your chosen table position.
-2. Calculate blue's centre on red. Set `BLOCK="blue_block"`, update X, Y and Z,
-   and run the `pick` command from section 4.2.
-3. Calculate green's centre on blue, update the variables and place green.
-4. **Capture 6A:** the red–blue–green tower, bottom to top. Caption it with the
-   three centre coordinates and your height calculation.
+Restart Gazebo and the robot, then load the blocks again as in section 3.4.
+Build one three-block tower at your chosen location and in your chosen order.
+Use `pick` with calculated block-centre coordinates, without the `stack` shortcut.
+Keep the fourth block separate.
 
-Do not use the `stack` shortcut. The server checks that an elevated target
-has a real, aligned support; it does not calculate or replace your coordinates.
-Keep the cubes upright with yaw zero.
+### 6.2 Checkpoints
 
-![Two cubes after the first calculated elevated placement](docs/media/15-blue-on-red.png)
-
-![Three-block tower](docs/media/16-first-tower.png)
-
-### 6.2 Build a different tower without resetting
-
-Write the move order for a **blue–green–red** tower, bottom to top.
-Move free top blocks to clear table spaces first, then rebuild using `pick`.
-Complete this without resetting the scene or using `move`, `randomize`, or
-the `stack` shortcut. Move only a free top block and wait for each successful
-result before continuing. The order matters: a support cannot move while
-another block is on top of it.
-
-![Second tower with blue below green and red](docs/media/21-second-tower.png)
-
-### 6.3 Checkpoints
-
-Show the TA both tower arrangements. Include a screenshot of each, labelled
-**6A: red–blue–green** and **6B: blue–green–red**, with the block-centre
-coordinates you used. Your added block stays separate.
+Show the TA your tower. Submit **one screenshot** of the completed arrangement.
+Below it, list the three hex colors and block-centre coordinates, bottom to top.
 
 ## 7. Bonus: five colors in a horizontal row
 
