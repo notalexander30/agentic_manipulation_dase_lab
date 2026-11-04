@@ -24,28 +24,27 @@ arm joints: `shoulder_pan_joint`, `shoulder_lift_joint`, `elbow_joint`,
 `wrist_1_joint`, `wrist_2_joint` and `wrist_3_joint`. Leave the gripper unchanged.
 Complete these absolute goals in order:
 
-1. **All six joints at 45° (0.7854 rad each):** Enter the goals, click Plan,
-   capture the plan and the arm before execution, then click Execute and
+1. **Pose A:** Enter the six Pose A angles from tutorial section 2.4, click
+   Plan, capture the plan and arm before execution, then click Execute and
    capture the resulting pose in Gazebo.
-2. **All six joints at 90° (1.5708 rad each):** Refresh Start State to current,
-   enter the new goals, and repeat Plan, capture, Execute, capture.
+2. **Pose B:** Refresh Start State to current, enter the Pose B angles from
+   the same table, and repeat Plan, capture, Execute, capture.
 
 Enter the value matching the unit shown by RViz. Execute only a successful plan.
 
 **Submit:** Four screenshots:
 
-- **2A-before:** RViz showing all six 45° goals and the planned path, with
+- **2A-before:** RViz showing all six Pose A goals and the planned path, with
   Gazebo showing the arm before execution.
-- **2A-after:** Gazebo showing the pose after executing the 45° goals.
-- **2B-before:** RViz showing all six 90° goals and the planned path, with
+- **2A-after:** Gazebo showing the executed Pose A.
+- **2B-before:** RViz showing all six Pose B goals and the planned path, with
   Gazebo showing the arm before execution.
-- **2B-after:** Gazebo showing the pose after executing the 90° goals.
+- **2B-after:** Gazebo showing the executed Pose B.
 
-Label each angle. Include RViz's current joint values in the after captures if
-possible. Enter both sets of goals manually. These poses may be rejected by
-collision checking: if planning fails, submit the goal values and planning-error
-capture instead of the corresponding executed-pose capture. Keep collision
-checking enabled and ask the TA before continuing.
+Label each pose. Include RViz's current joint values in the after captures if
+possible. If planning fails, submit the goal values and planning-error capture
+instead of the executed-pose capture. Keep collision checking enabled and ask
+the TA before continuing.
 
 **Answer:** What does Plan do, and what changes when you click Execute?
 

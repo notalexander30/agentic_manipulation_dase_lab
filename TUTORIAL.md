@@ -171,19 +171,20 @@ them later. Do not start `sim.launch.py` alongside them; it starts another scene
 ### 2.4 Plan and move the arm in RViz
 
 In RViz, select **Planning Group → ur10e_arm**, **Start State → current**,
-then open **Joints**. Manually set all six arm joints to the same absolute
-angle for each checkpoint. Leave the gripper unchanged.
+then open **Joints**. Enter each joint's absolute goal from the table.
+Leave the gripper unchanged.
 
-| Arm joint | Checkpoint A | Checkpoint B |
-| --- | --- | --- |
-| `shoulder_pan_joint` | 45° | 90° |
-| `shoulder_lift_joint` | 45° | 90° |
-| `elbow_joint` | 45° | 90° |
-| `wrist_1_joint` | 45° | 90° |
-| `wrist_2_joint` | 45° | 90° |
-| `wrist_3_joint` | 45° | 90° |
+| Arm joint | Pose A (degrees) | Pose B (degrees) |
+| --- | ---: | ---: |
+| `shoulder_pan_joint` | 15° | 30° |
+| `shoulder_lift_joint` | −75° | −60° |
+| `elbow_joint` | 15° | 30° |
+| `wrist_1_joint` | −75° | −60° |
+| `wrist_2_joint` | 15° | 30° |
+| `wrist_3_joint` | 15° | 30° |
 
-If the RViz input uses radians, enter **0.7854** for 45° and **1.5708** for 90°.
+If RViz shows radians, use `0.2618` for 15°, `-1.3090` for −75°,
+`0.5236` for 30°, and `-1.0472` for −60°. Use the unit shown by RViz.
 These are absolute goals, not increments. Complete A, then B:
 
 1. **Manually type all six joint goals** in the Joints tab.
@@ -195,12 +196,10 @@ These are absolute goals, not increments. Complete A, then B:
    RViz's current joint values in the same capture if possible.
 6. Before planning B, refresh **Start State → current**.
 
-For submission, manually enter both sets of goals and label each pair with its
-angle. These poses have not been validated in this scene and may be rejected
-because of collisions. If planning fails, capture the six goal values and the
-planning error instead of an executed-pose capture; ask the TA before continuing.
-Keep collision checking enabled and execute only successful plans.
-Finish manual joint movement before loading blocks.
+For submission, enter both sets manually and label the captures **Pose A**
+and **Pose B**. Keep collision checking enabled and execute only successful
+plans. If planning fails, capture the goal values and error, then ask the TA
+before continuing. Finish manual joint movement before loading blocks.
 
 Before executing a movement (illustrative example; use your assigned angles):
 
@@ -415,11 +414,13 @@ All color and block settings are in `src/block_skills/config/blocks.json`:
    For example:
 
 ```json
-{"name": "custom_extra", "color": "#FF8800", "position": [0.55, -0.28, 0.675], "yaw": 0.0}
+{"name": "custom_extra", "color": "#FF8800", "position": [0.40, -0.10, 0.675], "yaw": 0.0}
 ```
 
 3. Replace `#FF8800` with your chosen code and select a free starting position.
-   The yellow block from section 5 alone does not count as this additional block.
+   Keep this position clear of both the live blocks and other JSON starting
+   positions. The yellow block from section 5 alone does not count as this
+   additional block.
 4. Save with **Ctrl+S** and load the new block in the Docker terminal:
 
 ```bash

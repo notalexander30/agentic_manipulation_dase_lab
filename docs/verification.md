@@ -1,5 +1,13 @@
 # Verification record
 
+## Full tutorial rerun — 4 November 2026
+
+The complete functional tutorial passed in a fresh folder with both new joint
+poses, ten verified pick/place operations, both tower arrangements, custom hex
+color loading, rejection checks, and restart/shutdown. No unplanned reset or
+skill-level planning retry occurred in the recorded successful run. Details, limits and
+screenshots are in [the tutorial test report](tutorial-retest.md).
+
 ## Published ZIP audit — 2 November 2026
 
 The missing `lab-files.zip` was published to GitHub main in commit 212ebad.
