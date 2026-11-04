@@ -465,6 +465,7 @@ Example of a fourth block; your chosen color will differ:
 
 ### 5.2 Move the added block
 
+Size helps determine the gripper opening and grasp position.
 Move it to a clear table position using `pick`, for example:
 
 ```bash
@@ -488,7 +489,8 @@ showing the four blocks in Gazebo, and write your chosen hex code below it.
 
 #### Questions
 
-8. What do the three pairs in a `#RRGGBB` color code represent?
+8. Why does a robot need to know a block's size as well as its position
+   to pick it up?
 
 ## 6. Build a tower with your own colors
 
