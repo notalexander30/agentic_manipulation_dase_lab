@@ -13,7 +13,10 @@ WORKDIR /opt/ifra
 COPY upstream/ros2_SimRealRobotControl /opt/ifra/src/ros2_SimRealRobotControl
 COPY upstream/IFRA_LinkAttacher /opt/ifra/src/IFRA_LinkAttacher
 COPY upstream/gazebo_ros2_control/gazebo_ros2_control /opt/ifra/src/gazebo_ros2_control
-RUN source /opt/ros/humble/setup.bash && \
+# Initialize the optional PID flag in the image copy of the upstream source.
+RUN sed -i 's/^  bool antiwindup;$/  bool antiwindup = false;/' \
+      src/gazebo_ros2_control/src/gazebo_system.cpp && \
+    source /opt/ros/humble/setup.bash && \
     colcon build --parallel-workers 2 --packages-select \
       ros2srrc_robots ros2srrc_endeffectors ros2srrc_ur10e ros2srrc_moveit \
       linkattacher_msgs ros2_linkattacher gazebo_ros2_control \

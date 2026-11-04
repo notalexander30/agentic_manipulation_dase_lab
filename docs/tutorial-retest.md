@@ -143,3 +143,31 @@ Docker, sourcing the persistent workspace, starting the simulation and loading
 all four saved JSON blocks succeeded. A second `exit` again removed the test
 container. Workspace files remained available. Section 3.4 now documents this
 container re-entry procedure for applying scene edits.
+
+## Lab ZIP controller-warning fix — 4 November 2026
+
+The Docker build now initializes the optional `antiwindup` flag to `false`
+in its copied gazebo_ros2_control source before compilation. The host's
+upstream checkout stays unchanged. The earlier warning did not prevent a
+successful build; this change gives its exception path a defined default.
+
+Verification for this change:
+
+- Docker image `ur10e:pid-default-fix` (`c22b70c8b59b`) built successfully;
+  the controller package's stored compiler stderr is empty.
+- Recreated `lab-files.zip`: 30 files, all byte-for-byte identical to the
+  corresponding project files, with `compose.yaml` at the archive root.
+- Extracted into `/home/xander/ur10e-zip-check-6v3xt60k`; both custom
+  packages built successfully and all 20 automated tests passed.
+- Isolated headless simulation on ROS domain 84 became ready, with the
+  joint trajectory and gripper controllers active.
+- Pick/place task `3692c94db2a344e38bd619b807b4eaa6` returned `success=true`,
+  `verified=true`, and `holding_block=false`. Requested red centre:
+  `[0.82, -0.28, 0.675]`; measured:
+  `[0.819985, -0.279985, 0.674898]` metres.
+- The temporary test container was removed after completion.
+
+ZIP SHA-256: `be1075eb9cb9e0a52ae48d67be0c6808159a2bee56cf26124dafe293d6d60a60`.
+
+This is a focused regression check of the ZIP/build fix, not another complete
+execution of every tutorial exercise or its graphical interactions.
