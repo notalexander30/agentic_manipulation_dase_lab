@@ -157,8 +157,8 @@ Show the TA the successful build. Include one terminal screenshot showing
 ## 2. Start the simulation and move joints manually
 
 Gazebo simulates physics and moving objects. RViz shows ROS data and MoveIt
-planning controls. Load the table, robot and blocks separately so you can see
-what each component adds.
+planning controls. Simulation lets you test layouts and robot motion without
+physical hardware. Load the table, robot and blocks separately.
 
 ### 2.1 Prepare the scene settings
 
@@ -288,8 +288,7 @@ the node-list output and the two joint-state messages in your report.
 #### Questions
 
 2. Record the output of `ros2 node list`. Which node handles motion planning?
-3. Record `shoulder_pan_joint` after Pose A and Pose B. Why does the joint-state
-   message contain joint names as well as a list of positions?
+3. What is Gazebo used for in this lab, and what is RViz used for?
 
 ## 3. Edit and load JSON blocks
 
@@ -364,8 +363,7 @@ JSON edits and the resulting Gazebo scene in your report.
 
 4. Which lines did you modify in `blocks.json`? Show the position and color
    entries before and after your changes.
-5. Why does running `load` again preserve an existing block's live position
-   instead of applying its edited JSON starting position?
+5. Why is simulation useful before testing a robot task on real hardware?
 
 ## 4. Pick and place with coordinates
 
@@ -373,7 +371,8 @@ JSON edits and the resulting Gazebo scene in your report.
 
 Positions are `[x, y, z]` in metres. X follows Gazebo's red world axis,
 Y the green axis, and Z the blue axis. Use the world axes, not the direction
-the camera is facing.
+the camera is facing. The `world` frame is the shared coordinate reference
+for the robot and blocks. MoveIt checks for collisions along the planned path.
 
 The table measures **0.90 m (X) × 1.20 m (Y) × 0.10 m thick**. Its top is at
 **Z = 0.65 m**. Each block is **0.05 m × 0.05 m × 0.05 m**; its centre rests
@@ -425,11 +424,10 @@ the variable values and command used for each move.
 
 #### Questions
 
-6. Move a block and request another placement from its new position. Why can
-   `pick` find it without you entering its starting coordinates? Include the
-   `blocks list` output from before and after a move.
-7. What happens if you request a destination outside the table surface
-   (for example, `X=1.50`)? Record the returned message.
+6. Why is a common coordinate frame needed when specifying robot and block
+   positions?
+7. Why must the planned path be checked for collisions even when the
+   destination is clear?
 
 ## 5. Add and move your own colored block
 
@@ -490,8 +488,7 @@ showing the four blocks in Gazebo, and write your chosen hex code below it.
 
 #### Questions
 
-8. What happened when you loaded your new block, and what changed only after running
-   `pick`? Explain the difference between adding an object and moving it.
+8. What do the three pairs in a `#RRGGBB` color code represent?
 
 ## 6. Build a tower with your own colors
 
