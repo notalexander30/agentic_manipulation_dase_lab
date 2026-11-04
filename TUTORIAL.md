@@ -1,7 +1,14 @@
 # UR10e Lab: Pick, Place and Stack
 
 **Your goal:** load a robot from GitHub, move blocks using coordinates,
-and build a tower. Submit the captures and answers in [QUESTIONS.md](QUESTIONS.md).
+and build a tower.
+
+**Complete the six checkpoints below and ask the TA to check your results.
+Include your screenshots and answers to Questions 1–8 in your Word report.
+Part 7 is a bonus task.**
+
+Use **Print Screen** (or **Fn + PrtSc**) on Ubuntu to capture your work.
+Label each image with its checkpoint number.
 
 **Final task overview** (3× speed):
 
@@ -27,6 +34,7 @@ sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
 
+Copy `$USER` exactly as written; Ubuntu fills in your current username.
 Log out and back in after adding yourself to the Docker group.
 If needed, install VS Code with `sudo snap install code --classic`.
 
@@ -35,13 +43,16 @@ If needed, install VS Code with `sudo snap install code --classic`.
 Create the workspace and download the robot packages once:
 
 ```bash
-mkdir -p ~/ur10e-skills-lab/upstream
-cd ~/ur10e-skills-lab
+LAB_DIR="$HOME/ur10e-skills-lab"
+mkdir -p "$LAB_DIR/upstream"
+cd "$LAB_DIR"
 git clone https://github.com/IFRA-Cranfield/ros2_SimRealRobotControl.git upstream/ros2_SimRealRobotControl
 git clone https://github.com/IFRA-Cranfield/IFRA_LinkAttacher.git upstream/IFRA_LinkAttacher
 git clone --branch humble https://github.com/ros-controls/gazebo_ros2_control.git upstream/gazebo_ros2_control
 ```
 
+`LAB_DIR` stores your workspace path. Change `ur10e-skills-lab` if you want a
+different folder name; keep `$HOME` and `"$LAB_DIR"` as written.
 `upstream/` stores the repositories on your computer. The `humble` branch of
 `gazebo_ros2_control` matches ROS 2 Humble.
 
@@ -76,6 +87,9 @@ code .
 export LAB_UID=$(id -u) LAB_GID=$(id -g)
 docker compose build
 ```
+
+Copy `$(id -u)` and `$(id -g)` exactly as written. They read your Linux user
+and group IDs automatically; these are not your student ID.
 
 The image contains Ubuntu, ROS and the robot packages. Build it once.
 This creates the image; it does not start the robot. The account IDs make
@@ -112,13 +126,24 @@ colcon build --base-paths src --symlink-install --parallel-workers 2
 source /work/install/setup.bash
 ```
 
-**Capture 1:** the build summary showing `2 packages finished`.
-`source` makes these packages available in this terminal.
+`source` loads the workspace environment so this terminal can find the packages
+you built.
 
 ![Both custom ROS packages finished building](docs/media/02-package-build.png)
 
 `colcon` builds the two custom packages. The IFRA robot packages are already
 inside the Docker image.
+
+### 1.7 Checkpoints and Questions
+
+#### Checkpoints
+
+Show the TA the successful build. Include one terminal screenshot showing
+`block_interfaces`, `block_skills` and `2 packages finished` in your report.
+
+#### Questions
+
+1. What is the purpose of sourcing the workspace, and why is it needed?
 
 ## 2. Start the simulation and move joints manually
 
@@ -143,6 +168,7 @@ WORLD_PID=$!
 
 **Expected:** Gazebo shows a table and floor, with no robot or blocks yet.
 The table dimensions come from JSON. Wait for the table before continuing.
+Adjust the window size so the whole table is visible.
 
 ![Gazebo world containing the table before the robot is loaded](docs/media/03-table-world.png)
 
@@ -185,7 +211,14 @@ Leave the gripper unchanged.
 
 If RViz shows radians, use `0.2618` for 15°, `-1.3090` for −75°,
 `0.5236` for 30°, and `-1.0472` for −60°. Use the unit shown by RViz.
-These are absolute goals, not increments. Complete A, then B:
+These are absolute goals, not increments. After executing each pose, save
+one joint-state message using:
+
+```bash
+ros2 topic echo /joint_states --once
+```
+
+Complete A, then B:
 
 1. **Manually type all six joint goals** in the Joints tab.
 2. Click **Plan** and inspect the path. Gazebo's arm has not moved yet.
@@ -193,7 +226,8 @@ These are absolute goals, not increments. Complete A, then B:
    planned path, with Gazebo showing the arm before execution.
 4. Click **Execute** after a successful plan.
 5. **Capture 2A-after / 2B-after:** Gazebo showing the executed pose; include
-   RViz's current joint values in the same capture if possible.
+   RViz's current joint values in the same capture if possible. Save the
+   joint-state message after each execution.
 6. Before planning B, refresh **Start State → current**.
 
 For submission, enter both sets manually and label the captures **Pose A**
@@ -212,6 +246,33 @@ After MoveIt executes the movement:
 The goal model previews the requested pose; Execute sends the planned motion
 to the controllers. Later, your `pick` commands send block destinations to
 the same planning system instead of specifying individual joint angles.
+
+### 2.5 Read ROS output
+
+A ROS node is a running program. `/move_group` handles motion planning.
+`/joint_states` publishes joint names and positions; each name matches the
+position at the same array index. Arm joint positions are in radians.
+
+In the Docker terminal, enter:
+
+```bash
+ros2 node list
+```
+
+Keep this output with the joint-state messages recorded after Pose A and Pose B.
+
+### 2.6 Checkpoints and Questions
+
+#### Checkpoints
+
+Show the TA both executed poses. Include the before/after captures for A and B,
+the node-list output and the two joint-state messages in your report.
+
+#### Questions
+
+2. Record the output of `ros2 node list`. Which node handles motion planning?
+3. Record `shoulder_pan_joint` after Pose A and Pose B. Why does the joint-state
+   message contain joint names as well as a list of positions?
 
 ## 3. Edit and load JSON blocks
 
@@ -246,7 +307,7 @@ its palette entry to `"green": "#1AE666"`. Save the file.
 
 Colors accept six-digit hex codes in quotes, such as `"#1AE666"`.
 The supplied blocks use palette keys (`red`, `blue`, `green`); for a new block,
-you can put a hex code directly in its `color` field as shown in section 6.3.
+you can put a hex code directly in its `color` field as used in the bonus task in section 7.
 Keep JSON commas and braces intact, and save with **Ctrl+S**.
 
 ### 3.3 Load the configured blocks into Gazebo
@@ -255,8 +316,6 @@ Keep JSON commas and braces intact, and save with **Ctrl+S**.
 ros2 run block_skills blocks load
 ros2 run block_skills blocks list
 ```
-
-**Capture 3:** the edited JSON and the three blocks in Gazebo.
 
 **Expected:** Three blocks appear, with green at approximately
 `[0.65, 0.28, 0.675]`. The server reads JSON, creates the cube models in
@@ -271,11 +330,25 @@ not links added to the robot URDF.
 
 `load` adds missing model names; it preserves existing blocks' live poses.
 To apply an edited starting position to an existing block, stop both stages
-using section 7 (stay inside Docker), repeat sections 2.2–2.3, and load again.
+using section 8 (stay inside Docker), repeat sections 2.2–2.3, and load again.
 Keep Z at `0.675`, stay within `workspace`, and leave at least `0.16 m`
 between separate block centres.
 
 ![Restarted scene with an edited starting position loaded](docs/media/22-reloaded-scene.png)
+
+### 3.5 Checkpoints and Questions
+
+#### Checkpoints
+
+Show the TA the edited green block and the three loaded blocks. Include the
+JSON edits and the resulting Gazebo scene in your report.
+
+#### Questions
+
+4. Which lines did you modify in `blocks.json`? Show the position and color
+   entries before and after your changes.
+5. Why does running `load` again preserve an existing block's live position
+   instead of applying its edited JSON starting position?
 
 ## 4. Pick and place with coordinates
 
@@ -291,16 +364,35 @@ at **Z = 0.675 m**.
 
 ### 4.2 Choose a destination and run the placement
 
-Use direct commands in Docker. For example, if the destination is clear:
+First read the available block names and their current positions:
 
 ```bash
-ros2 run block_skills blocks pick red_block 0.82 -0.28 0.675
+ros2 run block_skills blocks list
 ```
 
-`pick` makes the robot grasp and place the named block. The last three numbers
-are its destination centre **X Y Z**, in metres in the world frame.
-JSON defines the starting scene; enter movement destinations directly in these
-commands. No `pick_block`, `place_target` or Python wrapper is needed.
+Set the block name and destination. These example values move red to a clear
+table position; change the values after `=` for your own task:
+
+```bash
+BLOCK="red_block"
+X=0.82
+Y=-0.28
+Z=0.675
+```
+
+Use the variables in the command:
+
+```bash
+ros2 run block_skills blocks pick "$BLOCK" "$X" "$Y" "$Z"
+```
+
+Keep `"$BLOCK"`, `"$X"`, `"$Y"` and `"$Z"` as written. The shell substitutes
+the values you set above. Use a model name returned by `blocks list`.
+
+`pick` performs the full pick-and-place operation: grasp the block, carry it
+to the requested centre, release it, and check its final position. It does not
+leave the block held in the gripper. X, Y and Z are the destination in metres
+in the world frame; the starting position comes from Gazebo.
 
 The skill gets the block's latest pose, asks MoveIt for a collision-aware path,
 operates the gripper and checks the released cube. You choose the destination;
@@ -318,13 +410,27 @@ you do not need to enter six joint angles.
 ### 4.3 Move each block
 
 Move red by changing X, blue by changing Y, and green by changing both X and Y.
-Edit the model name and numeric coordinates in the command for each move.
-
-**Capture 4:** Gazebo after the three moves. Caption it with your three commands.
+Update `BLOCK`, `X`, `Y` and `Z` before each move, then run the same `pick`
+command. Read `blocks list` after each placement.
 
 ![Blue after its independent coordinate placement](docs/media/10-blue-place.png)
 
 ![Green after its independent coordinate placement](docs/media/11-green-place.png)
+
+### 4.4 Checkpoints and Questions
+
+#### Checkpoints
+
+Show the TA the three moved blocks. Include one screenshot of the scene and
+the variable values and command used for each move.
+
+#### Questions
+
+6. Move a block and request another placement from its new position. Why can
+   `pick` find it without you entering its starting coordinates? Include the
+   `blocks list` output from before and after a move.
+7. What happens if you request a destination outside the table surface
+   (for example, `X=1.50`)? Record the returned message.
 
 ## 5. Add and move a yellow block
 
@@ -353,15 +459,30 @@ live poses. Adding a scene object does not move the robot arm.
 Move it to a clear table position using `pick`, for example:
 
 ```bash
-ros2 run block_skills blocks pick yellow_extra 0.85 0.30 0.675
+BLOCK="yellow_extra"
+X=0.85
+Y=0.30
+Z=0.675
+ros2 run block_skills blocks pick "$BLOCK" "$X" "$Y" "$Z"
 ```
 
-**Capture 5:** Gazebo showing yellow after the robot placement. Keep it separate
-from the tower.
+Keep yellow separate from the tower.
 
 ![Yellow after a robot placement](docs/media/13-yellow-place.png)
 
-## 6. Build two towers and add your own color
+### 5.3 Checkpoints and Questions
+
+#### Checkpoints
+
+Show the TA yellow after its robot placement. Include one screenshot showing
+the four blocks in Gazebo.
+
+#### Questions
+
+8. What happened when you loaded yellow, and what changed only after running
+   `pick`? Explain the difference between adding an object and moving it.
+
+## 6. Build and rearrange a tower
 
 ### 6.1 Build a tower using coordinates
 
@@ -370,9 +491,9 @@ For stacking, align X/Y with the supporting block and calculate the moving
 block's centre Z from the cube dimensions. Use `blocks list` to read live poses.
 
 1. Keep red as the base at your chosen table position.
-2. Calculate blue's centre on red, then use `pick blue_block` followed by your
-   calculated X Y Z values.
-3. Calculate green's centre on blue and place it with `pick green_block`.
+2. Calculate blue's centre on red. Set `BLOCK="blue_block"`, update X, Y and Z,
+   and run the `pick` command from section 4.2.
+3. Calculate green's centre on blue, update the variables and place green.
 4. **Capture 6A:** the red–blue–green tower, bottom to top. Caption it with the
    three centre coordinates and your height calculation.
 
@@ -395,49 +516,25 @@ another block is on top of it.
 
 ![Second tower with blue below green and red](docs/media/21-second-tower.png)
 
-### 6.3 Add your own color beside the tower
+### 6.3 Checkpoints
 
-Use the full command prefix `ros2 run block_skills blocks` for every pick.
-For the final submission, add one additional block in a color **other than
-red, green, blue or purple**. Specify it with a **hex color code**, not a color name.
+Show the TA both tower arrangements. Include a screenshot of each, labelled
+**6A: red–blue–green** and **6B: blue–green–red**, with the block-centre
+coordinates you used. Yellow stays separate.
 
-All color and block settings are in `src/block_skills/config/blocks.json`:
+## 7. Bonus: five colors in a horizontal row
 
-1. Open an online [hex color picker](https://htmlcolorcodes.com/color-picker/),
-   choose your color, and copy its **#RRGGBB** code. Each pair represents
-   red, green or blue intensity. Use six digits after `#`.
-2. Find the `blocks` list. Add an entry with a **unique name** and paste the
-   code directly into `color`, inside double quotes. No new `colors` dictionary
-   entry is needed. Keep a comma between block entries.
-   `position` is its centre `[x, y, z]` in metres; use `z = 0.675` for the
-   table and choose a free X/Y at least `0.16 m` from other block centres.
-   For example:
+Add a fifth block in a new color of your choice. Use the robot to arrange all
+five blocks in one horizontal row on the table.
 
-```json
-{"name": "custom_extra", "color": "#FF8800", "position": [0.40, -0.10, 0.675], "yaw": 0.0}
-```
+*Hint: use the block centres, dimensions and workspace limits.*
 
-3. Replace `#FF8800` with your chosen code and select a free starting position.
-   Keep this position clear of both the live blocks and other JSON starting
-   positions. The yellow block from section 5 alone does not count as this
-   additional block.
-4. Save with **Ctrl+S** and load the new block in the Docker terminal:
+### 7.1 Checkpoints
 
-```bash
-ros2 run block_skills blocks load
-```
+Submit two screenshots: one showing the added fifth color, and one showing
+the completed row of five blocks.
 
-`load` adds the new block without resetting existing objects. To recolor a
-block that is already loaded, edit its `color` or palette values, then restart
-both launch stages and load again as in section 3.4. Add the submission block
-with a new name to preserve your completed tower.
-
-**Capture 6B:** your blue–green–red tower with the new colored block beside it.
-Include the new block entry from JSON and write your hex code in the
-caption. Yellow remains separate. The configured tower limit is three cubes;
-the extra color goes **beside** the tower.
-
-## 7. Stop the simulation
+## 8. Stop the simulation
 
 In the same Docker terminal:
 
@@ -450,3 +547,6 @@ Use `exit` to leave Docker when finished. Your workspace files remain on Ubuntu.
 For another session, export the account IDs and prepare desktop access as in
 section 1, enter Docker, source the packages, then launch the world and robot
 and load the blocks again.
+
+Submit your Word report with checkpoints 1–6, answers to Questions 1–8, and your
+edited `blocks.json`. Include the bonus screenshots if you attempted Part 7.

@@ -105,5 +105,6 @@ values in RViz were not automated. Audit helper files stay outside the project
 and are not required by students. Other student-selected coordinates and future
 upstream changes can still produce planning failures.
 
-The requested checkpoint/question redesign is deferred; this report covers
-runtime testing and the necessary pose/example corrections.
+This recorded runtime test preceded the checkpoint/question layout revision.
+It covers the joint poses, placements and towers above; the later five-block
+horizontal-row bonus was not executed in this run.
