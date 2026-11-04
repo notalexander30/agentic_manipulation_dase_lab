@@ -215,3 +215,20 @@ def world_sdf(config):
       <plugin name="gazebo_link_attacher" filename="libgazebo_link_attacher.so"/>
       <gui><camera name="camera"><pose>2.5 -2.5 2.0 0 0.35 2.35</pose></camera></gui>
     </world></sdf>'''
+
+
+def main():
+    """Export the JSON table world for a direct Gazebo Classic startup."""
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(description='Export a Gazebo world from the scene JSON.')
+    parser.add_argument('config', help='Scene JSON path.')
+    parser.add_argument('output', help='Output .world path.')
+    args = parser.parse_args()
+    Path(args.output).write_text(world_sdf(load_config(args.config)))
+    print(f'World written to {args.output}')
+
+
+if __name__ == '__main__':
+    main()

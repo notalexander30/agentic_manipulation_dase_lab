@@ -108,3 +108,28 @@ upstream changes can still produce planning failures.
 This recorded runtime test preceded the checkpoint/question layout revision.
 It covers the joint poses, placements and towers above; the later five-block
 horizontal-row bonus was not executed in this run.
+
+## Direct Gazebo startup update — 4 November 2026
+
+The tutorial now exports the existing JSON world with
+`python3 -m block_skills.geometry CONFIG OUTPUT`, then starts Gazebo directly
+with the ROS initialization and factory plugins. `robot.launch.py` still
+starts the robot, controllers, MoveIt and RViz. The older world launch remains
+available for existing workflows.
+
+This startup was checked in `/home/xander/ur10e-direct-gazebo-test`:
+
+- Fresh custom-package build: `2 packages finished [5.60s]`.
+- Direct Gazebo world, ROS state/spawn services, robot and skill readiness: passed.
+- Red pick/place: verified success, task `950116f3781c4397ad08e1c697bb95f7`.
+- Direct hex-color `extra_block` (`#FF8800`) loaded and moved using the
+  tutorial's shell variables: verified success, task `052f0b4e7c53424facbad2f6a4f2275b`.
+- All 20 automated checks passed before editing the audit scene.
+- The documented `kill -INT` and `wait` commands stopped Gazebo, its server/client,
+  MoveIt and RViz; process inspection found no live simulation processes.
+
+Both placement results reported `holding_block=false`. Logs and the second
+placement's screenshot remain in the test folder. This additional check covers
+the changed startup, grasp/release, two table placements and shutdown.
+
+Updated lab ZIP SHA-256: `b837c1b461aef8bece9fc1feb7f37d767729d4802ecf35a3897052a51245d20b`.

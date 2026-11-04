@@ -4,7 +4,7 @@
 and build a tower.
 
 **Complete the six checkpoints below and ask the TA to check your results.
-Include your screenshots and answers to Questions 1–8 in your Word report.
+Include your screenshots and answers to Questions 1–8 in your report.
 Part 7 is a bonus task.**
 
 Use **Print Screen** (or **Fn + PrtSc**) on Ubuntu to capture your work.
@@ -36,23 +36,19 @@ sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
 
-`$USER` is substituted with your logged-in Linux username. Check yours with:
+`$USER` is your Linux username, for example `xander`. Check yours with:
 
 ```bash
 whoami
 ```
 
-For example, if the output is `xander`, this command:
+Log out and back in before continuing.
+
+If VS Code is not installed:
 
 ```bash
-sudo usermod -aG docker "$USER"
+sudo snap install code --classic
 ```
-
-means `sudo usermod -aG docker xander`. Keep `"$USER"` for automatic substitution,
-or replace it with your own username if entering the name manually. `xander`
-is only the example username; do not use your student ID.
-Log out and back in after adding yourself to the Docker group.
-If needed, install VS Code with `sudo snap install code --classic`.
 
 ### 1.2 Download the robot repositories
 
@@ -181,19 +177,22 @@ Keep this file open while working with the simulation.
 
 ### 2.2 Open Gazebo with the table
 
-In the Docker terminal, start the table world:
+In the Docker terminal, export the table from JSON and open Gazebo:
 
 ```bash
-ros2 launch block_skills world.launch.py config:=/work/src/block_skills/config/blocks.json > /tmp/world.log 2>&1 &
+python3 -m block_skills.geometry /work/src/block_skills/config/blocks.json /tmp/table.world
+gazebo /tmp/table.world -s libgazebo_ros_init.so -s libgazebo_ros_factory.so > /tmp/world.log 2>&1 &
 WORLD_PID=$!
 ```
 
 `$!` automatically gives the process ID of the command started with `&`.
-`WORLD_PID` saves that number. Copy this line unchanged; it is not a username.
+`WORLD_PID` saves the Gazebo process ID. Copy this line unchanged.
+
+The `-s` options enable ROS communication and robot spawning.
 
 **Expected:** Gazebo shows a table and floor, with no robot or blocks yet.
 The table dimensions come from JSON. Wait for the table before continuing.
-Adjust the window size so the whole table is visible.
+Zoom in on the table if needed.
 
 ![Gazebo world containing the table before the robot is loaded](docs/media/03-table-world.png)
 
@@ -209,8 +208,7 @@ ROBOT_PID=$!
 ros2 run block_skills blocks status --wait 150
 ```
 
-`ROBOT_PID` saves the robot launch's process ID in the same way. Leave `$!`
-unchanged; the two launch stages have different process IDs.
+`ROBOT_PID` saves the robot launch process ID. Keep `$!` unchanged.
 
 Wait for readiness before moving. Gazebo simulates the robot; RViz provides
 MoveIt planning controls. `&` leaves the terminal available.
@@ -219,8 +217,8 @@ MoveIt planning controls. `&` leaves the terminal available.
 
 ![MoveIt planning controls and the robot in RViz](docs/media/05-rviz.png)
 
-Keep both launch stages running in this shell. The PID variables let you stop
-them later. Do not start `sim.launch.py` alongside them; it starts another scene.
+Keep Gazebo and the robot launch running in this shell. The saved process IDs
+let you stop them later.
 
 ### 2.4 Plan and move the arm in RViz
 
@@ -414,44 +412,18 @@ Use the variables in the command:
 ros2 run block_skills blocks pick "$BLOCK" "$X" "$Y" "$Z"
 ```
 
-Keep `"$BLOCK"`, `"$X"`, `"$Y"` and `"$Z"` as written. The shell substitutes
-the values you set above. For this example, the command becomes:
+Change the values above, then reuse the command. `pick` reads the block's
+current pose from Gazebo and places it at XYZ.
 
-```bash
-ros2 run block_skills blocks pick red_block 0.82 -0.28 0.675
-```
-
-Use a model name returned by `blocks list`. `BLOCK` is the object's name,
-not your Linux username. Change `BLOCK`, `X`, `Y` and `Z` for each placement;
-you do not need `export` for these variables.
-
-`pick` performs the full pick-and-place operation: grasp the block, carry it
-to the requested centre, release it, and check its final position. It does not
-leave the block held in the gripper. X, Y and Z are the destination in metres
-in the world frame; the starting position comes from Gazebo.
-
-The skill gets the block's latest pose, asks MoveIt for a collision-aware path,
-operates the gripper and checks the released cube. You choose the destination;
-you do not need to enter six joint angles.
-
-- X/Y are horizontal; Z is height. Use Gazebo's world axes.
-- For a separate table placement, use Z = `0.675`, X = `0.38–0.95`,
-  Y = `−0.45–0.45`, and at least `0.16 m` from other block centres.
-- Use `ros2 run block_skills blocks list` to read current centres before choosing a target.
-- Wait for `success: true` before the next move. If a failed task reports
-  `holding_block: true`, ask the TA and restart the scene before continuing.
-
-![Red block after a coordinate placement](docs/media/09-red-place.png)
+Use X = `0.38–0.95`, Y = `-0.45–0.45`, and Z = `0.675` for the table.
+Leave at least `0.16 m` between centres and wait for `success: true`.
+If a failure reports `holding_block: true`, restart before another task.
 
 ### 4.3 Move each block
 
 Move red by changing X, blue by changing Y, and green by changing both X and Y.
 Update `BLOCK`, `X`, `Y` and `Z` before each move, then run the same `pick`
 command. Read `blocks list` after each placement.
-
-![Blue after its independent coordinate placement](docs/media/10-blue-place.png)
-
-![Green after its independent coordinate placement](docs/media/11-green-place.png)
 
 ### 4.4 Checkpoints and Questions
 
