@@ -12,7 +12,9 @@ Label each image with its checkpoint number.
 
 **Final task overview** (3× speed):
 
-https://github.com/user-attachments/assets/c2d8020c-962b-4829-ad57-9fbe4109b950
+<video controls width="800" preload="metadata" poster="docs/media/16-first-tower.png">
+  <source src="docs/media/stack-overview.mp4" type="video/mp4">
+</video>
 
 Your window layout and block positions may look different from the examples below.
 
@@ -34,7 +36,21 @@ sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 ```
 
-Copy `$USER` exactly as written; Ubuntu fills in your current username.
+`$USER` is substituted with your logged-in Linux username. Check yours with:
+
+```bash
+whoami
+```
+
+For example, if the output is `xander`, this command:
+
+```bash
+sudo usermod -aG docker "$USER"
+```
+
+means `sudo usermod -aG docker xander`. Keep `"$USER"` for automatic substitution,
+or replace it with your own username if entering the name manually. `xander`
+is only the example username; do not use your student ID.
 Log out and back in after adding yourself to the Docker group.
 If needed, install VS Code with `sudo snap install code --classic`.
 
@@ -51,7 +67,8 @@ git clone https://github.com/IFRA-Cranfield/IFRA_LinkAttacher.git upstream/IFRA_
 git clone --branch humble https://github.com/ros-controls/gazebo_ros2_control.git upstream/gazebo_ros2_control
 ```
 
-`LAB_DIR` stores your workspace path. Change `ur10e-skills-lab` if you want a
+`$HOME` is your home folder, for example `/home/xander`. `LAB_DIR` then becomes
+`/home/xander/ur10e-skills-lab`. Change only `ur10e-skills-lab` if you want a
 different folder name; keep `$HOME` and `"$LAB_DIR"` as written.
 `upstream/` stores the repositories on your computer. The `humble` branch of
 `gazebo_ros2_control` matches ROS 2 Humble.
@@ -89,7 +106,9 @@ docker compose build
 ```
 
 Copy `$(id -u)` and `$(id -g)` exactly as written. They read your Linux user
-and group IDs automatically; these are not your student ID.
+and group IDs automatically; these are not your student ID. If both commands
+return `1000`, the line is equivalent to `export LAB_UID=1000 LAB_GID=1000`.
+Use the automatic command above so it matches your own account.
 
 The image contains Ubuntu, ROS and the robot packages. Build it once.
 This creates the image; it does not start the robot. The account IDs make
@@ -106,6 +125,9 @@ umask 077
 touch .xauth
 xauth nlist "$DISPLAY" | sed 's/^..../ffff/' | xauth -f .xauth nmerge -
 ```
+
+`$DISPLAY` is supplied by your desktop session, for example `:0` or `:1`.
+Keep `"$DISPLAY"` as written; do not replace it with your username.
 
 ### 1.6 Enter Docker and build the skill packages
 
@@ -166,6 +188,9 @@ ros2 launch block_skills world.launch.py config:=/work/src/block_skills/config/b
 WORLD_PID=$!
 ```
 
+`$!` automatically gives the process ID of the command started with `&`.
+`WORLD_PID` saves that number. Copy this line unchanged; it is not a username.
+
 **Expected:** Gazebo shows a table and floor, with no robot or blocks yet.
 The table dimensions come from JSON. Wait for the table before continuing.
 Adjust the window size so the whole table is visible.
@@ -183,6 +208,9 @@ ros2 launch block_skills robot.launch.py config:=/work/src/block_skills/config/b
 ROBOT_PID=$!
 ros2 run block_skills blocks status --wait 150
 ```
+
+`ROBOT_PID` saves the robot launch's process ID in the same way. Leave `$!`
+unchanged; the two launch stages have different process IDs.
 
 Wait for readiness before moving. Gazebo simulates the robot; RViz provides
 MoveIt planning controls. `&` leaves the terminal available.
@@ -307,7 +335,7 @@ its palette entry to `"green": "#1AE666"`. Save the file.
 
 Colors accept six-digit hex codes in quotes, such as `"#1AE666"`.
 The supplied blocks use palette keys (`red`, `blue`, `green`); for a new block,
-you can put a hex code directly in its `color` field as used in the bonus task in section 7.
+you can put a hex code directly in its `color` field as shown in section 5.
 Keep JSON commas and braces intact, and save with **Ctrl+S**.
 
 ### 3.3 Load the configured blocks into Gazebo
@@ -387,7 +415,15 @@ ros2 run block_skills blocks pick "$BLOCK" "$X" "$Y" "$Z"
 ```
 
 Keep `"$BLOCK"`, `"$X"`, `"$Y"` and `"$Z"` as written. The shell substitutes
-the values you set above. Use a model name returned by `blocks list`.
+the values you set above. For this example, the command becomes:
+
+```bash
+ros2 run block_skills blocks pick red_block 0.82 -0.28 0.675
+```
+
+Use a model name returned by `blocks list`. `BLOCK` is the object's name,
+not your Linux username. Change `BLOCK`, `X`, `Y` and `Z` for each placement;
+you do not need `export` for these variables.
 
 `pick` performs the full pick-and-place operation: grasp the block, carry it
 to the requested centre, release it, and check its final position. It does not
@@ -432,54 +468,66 @@ the variable values and command used for each move.
 7. What happens if you request a destination outside the table surface
    (for example, `X=1.50`)? Record the returned message.
 
-## 5. Add and move a yellow block
+## 5. Add and move your own colored block
 
-### 5.1 Add another block through JSON
+### 5.1 Choose a color and add a block
 
-Append this entry to the JSON `blocks` list, with a comma between entries.
-Use another free position if this one is occupied:
+Open the [HEX color picker](https://htmlcolorcodes.com/color-picker/), choose
+your own color, and copy its six-digit **#RRGGBB** code, including `#`.
+Each pair sets the red, green and blue intensity.
+
+In VS Code, add a fourth entry to the `blocks` list in
+`src/block_skills/config/blocks.json`. Keep a comma between entries:
 
 ```json
-{"name": "yellow_extra", "color": "yellow", "position": [0.55, 0.12, 0.675], "yaw": 0.0}
+{"name": "extra_block", "color": "#FF8800", "position": [0.55, 0.12, 0.675], "yaw": 0.0}
 ```
 
-Yellow already exists in `colors`. Save, then run:
+Replace `#FF8800` with your own chosen code, in quotes. Choose a color distinct
+from the three existing blocks; use your own code rather than copying this
+example. `extra_block` is the model name used in commands. A direct hex code
+needs no new entry in the `colors` dictionary.
+
+Choose a starting position clear of both the live blocks and the other JSON
+starting positions. Save, then run:
 
 ```bash
 ros2 run block_skills blocks load
 ```
 
-**Expected:** One new yellow block appears; the existing blocks keep their
-live poses. Adding a scene object does not move the robot arm.
+**Expected:** One new block appears in your chosen color; existing blocks keep
+their live poses. Adding a scene object does not move the robot arm.
 
-![A fourth yellow block added through JSON](docs/media/12-yellow-loaded.png)
+Example of a fourth block; your chosen color will differ:
+
+![Example of a fourth block added through JSON](docs/media/12-yellow-loaded.png)
 
 ### 5.2 Move the added block
 
 Move it to a clear table position using `pick`, for example:
 
 ```bash
-BLOCK="yellow_extra"
+BLOCK="extra_block"
 X=0.85
 Y=0.30
 Z=0.675
 ros2 run block_skills blocks pick "$BLOCK" "$X" "$Y" "$Z"
 ```
 
-Keep yellow separate from the tower.
+Keep your added block separate from the tower.
 
-![Yellow after a robot placement](docs/media/13-yellow-place.png)
+![Example of the added block after a robot placement](docs/media/13-yellow-place.png)
 
 ### 5.3 Checkpoints and Questions
 
 #### Checkpoints
 
-Show the TA yellow after its robot placement. Include one screenshot showing
-the four blocks in Gazebo.
+Show the TA your new block after its robot placement. Include one screenshot
+showing the four blocks in Gazebo, and write your chosen hex code below it.
 
 #### Questions
 
-8. What happened when you loaded yellow, and what changed only after running
+8. What happened when you loaded your new block, and what changed only after running
    `pick`? Explain the difference between adding an object and moving it.
 
 ## 6. Build and rearrange a tower
@@ -520,14 +568,14 @@ another block is on top of it.
 
 Show the TA both tower arrangements. Include a screenshot of each, labelled
 **6A: red–blue–green** and **6B: blue–green–red**, with the block-centre
-coordinates you used. Yellow stays separate.
+coordinates you used. Your added block stays separate.
 
 ## 7. Bonus: five colors in a horizontal row
 
-Add a fifth block in a new color of your choice. Use the robot to arrange all
-five blocks in one horizontal row on the table.
+Add a fifth block using another distinct hex color of your choice. Use the
+robot to arrange all five blocks in one horizontal row on the table.
 
-*Hint: use the block centres, dimensions and workspace limits.*
+*Hint: unique model names, block centres and workspace limits.*
 
 ### 7.1 Checkpoints
 
@@ -542,6 +590,10 @@ In the same Docker terminal:
 kill -INT "$ROBOT_PID" "$WORLD_PID"
 wait "$ROBOT_PID" "$WORLD_PID"
 ```
+
+Keep both variable names unchanged. They expand to the process IDs saved in
+sections 2.2–2.3. Run these commands in the same Docker terminal; do not
+replace them with your username or type guessed process numbers.
 
 Use `exit` to leave Docker when finished. Your workspace files remain on Ubuntu.
 For another session, export the account IDs and prepare desktop access as in
